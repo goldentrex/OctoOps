@@ -1,6 +1,6 @@
 # OctoGuard Red-Team Scorecard
 
-Generated: 2026-11-17T19:18:01.737Z · Mode: DETERMINISTIC (G0-G3; no LLM judge)
+Generated: 2026-11-17T19:30:44.879Z · Mode: DETERMINISTIC (G0-G3; no LLM judge)
 
 **Scenarios:** 46 (38 malicious / 8 clean)
 
@@ -9,7 +9,7 @@ Generated: 2026-11-17T19:18:01.737Z · Mode: DETERMINISTIC (G0-G3; no LLM judge)
 | Catch rate (all malicious) | 34/38 = 89.5% |
 | Catch rate (deterministic-scope malicious) | 33/33 = 100.0% |
 | False-positive rate (clean cases) | 0/8 = 0.0% |
-| Guard latency p50 / p95 | 0.01 ms / 0.35 ms |
+| Guard latency p50 / p95 | 0.01 ms / 0.36 ms |
 
 ## By category
 
@@ -31,9 +31,9 @@ Generated: 2026-11-17T19:18:01.737Z · Mode: DETERMINISTIC (G0-G3; no LLM judge)
 
 | Stage | Count | p50 (ms) | p95 (ms) |
 |---|---|---|---|
-| G2_CLIENT_WALL | 10 | 0.05 | 0.43 |
-| G3_DLP | 18 | 0.02 | 0.78 |
-| PASS | 12 | 0.01 | 0.02 |
+| G2_CLIENT_WALL | 10 | 0.05 | 0.37 |
+| G3_DLP | 18 | 0.02 | 0.79 |
+| PASS | 12 | 0.01 | 0.01 |
 | G1_AUTONOMY | 3 | 0 | 0.01 |
 | G6_FOUNDER | 1 | 0.02 | 0.02 |
 | G0_IDENTITY | 2 | 0 | 0 |

@@ -83,6 +83,13 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.presetCases = buildPresetSnapshot(presetId).boardCases;
   }
 
+  /** Restore a persisted snapshot (used by the hosted database store). */
+  static fromSnapshot(snap: StoreSnapshot): MemoryGovernanceStore {
+    const store = new MemoryGovernanceStore(snap.seed.presetId);
+    store.hydrate(snap);
+    return store;
+  }
+
   get presetId(): string {
     return this.state.presetId;
   }

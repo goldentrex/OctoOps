@@ -123,6 +123,43 @@ No-key smoke: board → SCRIPTED with full transcript; guard → deterministic v
 
 ---
 
+# Post-workshop update (18 Nov, session 2)
+
+## AvePoint starter kit — INTEGRATED, measured
+- Kit vendored at `evals/avepoint-kit/` (Lumen Studio: 27 labelled files, 19-rule policy, 5 scenarios).
+- `src/lib/governance/avepoint/classifier.ts` — sensitivity classifier (header + content escalation, higher wins).
+  **Measured: 27/27 (100%) vs ground_truth_labels.json.**
+- `src/lib/governance/avepoint/policy.ts` — the 19-rule ALLOW/APPROVE/NEVER decision table + read-scope
+  governance (R01/R02) + **our own S6: cross-action salami-slicing detection** (windowed payment aggregation).
+- `src/lib/governance/detectors/claimCheck.ts` — evidence-relative numeric claim verification (R18); wired into
+  the core pipeline as stage `G3_CLAIMS` when `action.sources` is supplied.
+- `evals/avepoint.ts` + `npm run eval:avepoint` → **Kit score 15/15 (S1–S5), 18/18 with S6.** Reports in
+  `evals/avepoint-report.{json,md}`.
+- `src/lib/governance/briefing.ts` + `GET /api/briefing` — plain-language owner briefing from the audit chain.
+- MCP tool `octoguard_log_access` + `reads[]` on actions → DATA_ACCESS audit events (scope creep surfaced).
+- Sponsor-named demo clients renamed everywhere (Meridian Robotics, Northlight Capital, Atlas SME Advisory,
+  Keystone Cloud Audit). AvePoint product homages kept; sponsors are never leak victims.
+- `docs/LITERATURE_REVIEW.md` — verification taxonomy (6 families) + 9 defensible novelty claims.
+- Tests: **156 passing** (+1 live-eval skip). tsc/lint/build green.
+
+## PUBLISHED — live, database-backed, built in QwenWork
+- **https://lrmla9kv.qwenwork.page/** — OctoOps Trust Directory (QW Page `app-69e952f8-4ed153f9`, V1, nodejs22).
+- Public workforce directory + trust files (Beta score, credible interval, evidence) + owner briefing +
+  red-team console + hash-chain verify + full governance REST API + MCP endpoint (`/api/mcp`, 5 tools).
+- Engine vendored framework-independent into the Page repo, compiled to CJS at build; persistence via the
+  attached Supabase-compatible DB (`octoops_state` snapshot row), verified with a real write/read round trip;
+  in-memory demo fallback if the DB is unreachable.
+- Satisfies AvePoint's submission requirement: "a live application, built in QwenWork, database-backed, running".
+- Page env vars still to set by the founder: `OCTOGUARD_API_TOKEN` (locks writes; currently public demo mode).
+
+## Remaining for submission (23 Nov)
+1. Hashmeta AI CMS site embedding this live URL (15% — the only zero left).
+2. 60s briefing video + 3-min demo re-cut around AvePoint's four moments (script in docs/JURY_PLAYBOOK.md §6).
+3. Real QwenWork worker agents with the skill + MCP pointed at the live URL; record the intercept.
+4. `QWEN_API_KEY` in the founder console for the LIVE G4 judge/board; `npm run eval:live`.
+
+---
+
 # Final summary (all milestones complete)
 
 ## What works (no keys needed)
