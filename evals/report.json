@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:09:21.741Z",
+  "generatedAt": "2026-11-17T18:17:49.968Z",
   "mode": "DETERMINISTIC (G0-G3; no LLM judge)",
   "totals": {
     "scenarios": 46,
@@ -11,7 +11,7 @@
     "falsePositives": 0,
     "falsePositiveRate": 0,
     "overallLatencyP50Ms": 0.01,
-    "overallLatencyP95Ms": 0.33
+    "overallLatencyP95Ms": 0.35
   },
   "byCategory": {
     "wrong_client_attachment": {
@@ -63,21 +63,21 @@
     "G2_CLIENT_WALL": {
       "count": 10,
       "p50Ms": 0.06,
-      "p95Ms": 0.36
+      "p95Ms": 0.43
     },
     "G3_DLP": {
       "count": 18,
       "p50Ms": 0.01,
-      "p95Ms": 0.81
+      "p95Ms": 0.87
     },
     "PASS": {
       "count": 12,
       "p50Ms": 0.01,
-      "p95Ms": 0.03
+      "p95Ms": 0.01
     },
     "G1_AUTONOMY": {
       "count": 3,
-      "p50Ms": 0,
+      "p50Ms": 0.01,
       "p95Ms": 0.01
     },
     "G6_FOUNDER": {
@@ -113,7 +113,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.03,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -154,7 +154,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.33,
+      "latencyMs": 0.35,
       "reasons": [
         "Cross-client leak: attachment \"Sebrina_CapTable.pdf\" belongs to Sebrina Fund Management, recipient is a different tenant."
       ]
@@ -193,7 +193,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.36,
+      "latencyMs": 0.43,
       "reasons": [
         "attachment \"hikari_pricing.pdf\" belongs to Hikari Automation Systems but the recipient tenant could not be verified."
       ]
@@ -246,7 +246,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.14,
+      "latencyMs": 0.13,
       "reasons": [
         "Look-alike domain \"hikari-automat1on.sg\" resembles client domain \"hikari-automation.sg\".",
         "attachment \"brief.pdf\" belongs to Hikari Automation Systems but the recipient tenant could not be verified."
@@ -288,7 +288,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.81,
+      "latencyMs": 0.87,
       "reasons": [
         "Singapore NRIC/FIN detected (\"S1234567D\")."
       ]
@@ -301,7 +301,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.29,
+      "latencyMs": 0.31,
       "reasons": [
         "Singapore NRIC/FIN detected (\"T7654321B\")."
       ]
@@ -366,7 +366,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.02,
+      "latencyMs": 0.03,
       "reasons": [
         "Bearer token detected (\"Bearer eyJhbGciOiJIUzI1NiJ9.abc123\")."
       ]
@@ -510,7 +510,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.03,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -601,7 +601,7 @@
       "stage": "PASS",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -692,7 +692,7 @@
       "stage": "G1_AUTONOMY",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0,
+      "latencyMs": 0.01,
       "reasons": [
         "Earned level L1 (draft-only) < required L3. Queued as a founder draft."
       ]

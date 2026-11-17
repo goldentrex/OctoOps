@@ -48,7 +48,10 @@ Format: "Assumed X because Y". Per kickoff prompt: no blocking questions, pick d
   (fail-safe: the structured vote, not prose, decides).
 
 ## M5
-(pending)
+- Assumed the sandbox keeps updating local demo state via `onRecordSandboxResult` while the server keeps its own
+  ledger, because wholesale page.tsx state refactoring is explicitly out of scope; the portal/KPIs read the server.
+- Assumed the board modal fetches the server case itself (self-contained edit) instead of threading new props through page.tsx.
+- Assumed the KPI strip is an additional compact row (existing strip untouched, per "do not restyle existing components").
 
 ## M6
 - Assumed `npm run eval` runs via vitest because vitest 5.x no longer ships the `vite-node` binary and no new deps

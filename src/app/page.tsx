@@ -27,6 +27,7 @@ import { OctoBoardModal } from "@/components/OctoBoardModal";
 import { EmployeeDossierDrawer } from "@/components/EmployeeDossierDrawer";
 import { HashmetaTrustPortal } from "@/components/HashmetaTrustPortal";
 import { GuardrailSandboxPanel } from "@/components/GuardrailSandboxPanel";
+import { GovernanceKpiStrip } from "@/components/GovernanceKpiStrip";
 import { OctoPuppet } from "@/components/OctoPuppet";
 import {
   evaluateAgentActionGuardrail,
@@ -1352,6 +1353,9 @@ export default function OctoOpsApp() {
               </div>
             </div>
           </section>
+
+          {/* M5: live server telemetry (hidden when the API is unreachable) */}
+          <GovernanceKpiStrip />
 
           {/* ==================== MAIN APPLICATION SHELL ==================== */}
           <div className="rounded-[28px] bg-white/75 backdrop-blur-xl ring-1 ring-slate-900/[0.06] shadow-surface overflow-hidden">
