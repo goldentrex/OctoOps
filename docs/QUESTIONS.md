@@ -31,7 +31,11 @@ Format: "Assumed X because Y". Per kickoff prompt: no blocking questions, pick d
 - Assumed read routes are public (the Hashmeta portal embed needs them); only writes require the bearer token.
 
 ## M3
-(pending)
+- Assumed stateless MCP (no sessions, JSON responses) because Next.js route handlers are request-scoped and may run
+  serverless; SDK 1.32.2 explicitly supports this mode. Stateful SSE sessions would need sticky routing.
+- Assumed `skill:zip` may use the system `zip` CLI instead of adding a zip dependency (kickoff limits new deps).
+- Assumed MCP auth reuses `OCTOGUARD_API_TOKEN` (kickoff: "Same bearer token").
+- Could not confirm QwenWork-side MCP attachment UI or pre-action hooks from public docs; recorded in QWENWORK_SETUP.md.
 
 ## M4
 (pending)

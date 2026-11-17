@@ -49,7 +49,24 @@ Live smoke test against `next start`: cross-tenant leak BLOCK (-35, tribunal, ca
 DRAFT approval queued → EDIT resolved, outcome CLEAN fed trust, audit chain valid, zod 422 on bad body. `.data/` removed after smoke test.
 
 **Left**: G4 judge injection + live board land in M4; Founder's Desk UI is M5+1 (per kickoff, out of scope tonight).
-## M3. QwenWork integration surface — PENDING
+## M3. QwenWork integration surface — DONE
+
+**Built**:
+- `src/lib/mcp/server.ts` — `buildOctoGuardMcpServer(store)` with 4 tools (precise descriptions + zod input schemas):
+  `octoguard_check_action`, `octoguard_report_outcome`, `octohr_get_my_file`, `octohr_request_promotion`.
+- `src/app/api/mcp/route.ts` — Streamable HTTP via SDK 1.32.2 `WebStandardStreamableHTTPServerTransport`,
+  **stateless** (`sessionIdGenerator: undefined`) with `enableJsonResponse: true`; same bearer auth as REST writes.
+- `qwenwork-skills/octoguard/SKILL.md` — obey-the-verdict rules + 3 worked examples (allow, cross-client block, draft-only).
+- `npm run skill:zip` → `qwenwork-skills/octoguard.zip` (uses the `zip` CLI; artifact git-ignored).
+- `docs/QWENWORK_SETUP.md` — setup steps + curl smoke test per tool; QwenWork-side UI steps explicitly marked unconfirmed.
+
+**Verified**: tsc ✅ lint ✅ build ✅. Live smoke against `next start`: initialize handshake OK, `tools/list` returns all 4,
+`check_action` → BLOCK (G2), `get_my_file` → levels + evidence, `request_promotion` → hearing opened + audit event,
+`report_outcome` → ok. `npm run skill:zip` produces a valid zip.
+
+**Unconfirmed (needs workshop/mentors)**: whether hackathon-plan QwenWork agents can attach custom remote MCP servers,
+whether a pre-action hook exists (skill instruction may be the only enforcement point), stable agent identity, model quotas.
+No public QwenWork MCP docs found via web search on 18 Nov.
 ## M6. Red-team scorecard — PENDING
 ## M4. Qwen judge and live board — PENDING
 ## M5. Minimal UI wiring — PENDING
