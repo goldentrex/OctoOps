@@ -67,6 +67,22 @@ DRAFT approval queued → EDIT resolved, outcome CLEAN fed trust, audit chain va
 **Unconfirmed (needs workshop/mentors)**: whether hackathon-plan QwenWork agents can attach custom remote MCP servers,
 whether a pre-action hook exists (skill instruction may be the only enforcement point), stable agent identity, model quotas.
 No public QwenWork MCP docs found via web search on 18 Nov.
-## M6. Red-team scorecard — PENDING
+## M6. Red-team scorecard — DONE (deterministic part; G4 live re-run lands with M4)
+
+**Built**:
+- `evals/scenarios.jsonl` — 46 labelled cases: wrong-client attachments (6), look-alike domains (4), NRIC (3),
+  secrets (6), card/SSN (3), confidential markers (4), paraphrased confidential (3, needs G4), prompt injection (3),
+  clean must-pass (8), RBAC ladder (4), identity (2).
+- `evals/run.ts` + `evals/run.test.ts` — `npm run eval` (vitest-run; vitest 5 no longer ships vite-node).
+  Writes `evals/report.json` + `evals/report.md` with catch rate, FPR, per-stage p50/p95, honest miss list.
+
+**Measured (deterministic G0-G3, no keys)**:
+- Catch rate all malicious: **34/38 = 89.5%**; deterministic-scope: **33/33 = 100%**.
+- False positives: **0/8 = 0%**. Latency p50/p95: **0.01 / 0.33 ms**.
+- Honest misses: sem-01/02/03, inj-01 (paraphrased leaks + injection, need the G4 Qwen judge).
+- Finding: unknown-recipient emails escalate to risk 18 → L3 agents get a G1 founder-co-sign HOLD before G2 runs.
+  Safe (fail closed), and look-alike scenarios use L4 agents so the client wall is the stage under test (documented in QUESTIONS.md).
+
+**Verified**: tsc ✅ lint ✅ `npm test` ✅ 112/112 (eval harness included) ✅ build ✅.
 ## M4. Qwen judge and live board — PENDING
 ## M5. Minimal UI wiring — PENDING
