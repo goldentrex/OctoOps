@@ -38,7 +38,14 @@ Format: "Assumed X because Y". Per kickoff prompt: no blocking questions, pick d
 - Could not confirm QwenWork-side MCP attachment UI or pre-action hooks from public docs; recorded in QWENWORK_SETUP.md.
 
 ## M4
-(pending)
+- Assumed default models `qwen-flash` (fast) / `qwen-plus` (strong) on the DashScope international compatible-mode endpoint
+  because the subscription's exact model ids/quotas are a workshop unknown; both are overridable via env.
+- Assumed static believability weights (CISO 1.2 / CFO 1.0 / VP 0.9) because per-judge past-accuracy tracking needs
+  outcome history that does not exist yet; the weighting function is isolated so learned weights can replace it.
+- Assumed the CISO veto applies to PROMOTION_HEARING outcomes (plan: "veto on promotions touching external send");
+  disciplinary tribunals are not veto-limited.
+- Assumed a weighted decision that contradicts the LLM's suggested outcome overrides it deterministically
+  (fail-safe: the structured vote, not prose, decides).
 
 ## M5
 (pending)

@@ -84,5 +84,22 @@ No public QwenWork MCP docs found via web search on 18 Nov.
   Safe (fail closed), and look-alike scenarios use L4 agents so the client wall is the stage under test (documented in QUESTIONS.md).
 
 **Verified**: tsc ✅ lint ✅ `npm test` ✅ 112/112 (eval harness included) ✅ build ✅.
-## M4. Qwen judge and live board — PENDING
+## M4. Qwen judge and live board — DONE (code paths verified; live LLM run needs QWEN_API_KEY)
+
+**Built**:
+- `src/lib/llm/qwen.ts` — OpenAI-compatible client (`openai` pkg). Env: `QWEN_API_KEY`, `QWEN_BASE_URL`
+  (default DashScope intl compatible-mode), `QWEN_MODEL_FAST` (default `qwen-flash`), `QWEN_MODEL_STRONG` (default `qwen-plus`).
+  Hard timeouts, one retry, `response_format: json_object`, zod-validated output, null on any failure.
+- `src/lib/llm/judge.ts` — G4 on the fast model: semantic leak / unsupported claims / off-brand tone / injection echo.
+  Injected into `POST /api/guard/evaluate` and MCP `octoguard_check_action`; pipeline runs it only when G0-G3 pass and risk ≥ 5.
+- `src/lib/llm/board.ts` — plan 3.5 protocol: 3 independent votes (parallel, same evidence pack) → 1 rebuttal/final call →
+  believability-weighted tally (CISO 1.2 / CFO 1.0 / VP 0.9) → CISO veto on promotion hearings → strict `BoardReviewCase`.
+  Whole deliberation raced against a 12s budget; any failure → scripted transcript, `mode: "SCRIPTED"`.
+- `POST /api/board/deliberate` now returns `{mode, reviewCase}` (LIVE with key, SCRIPTED without).
+- `npm run eval:live` — same 46 scenarios with the live judge (auto-skipped without a key).
+
+**Verified**: tsc ✅ lint ✅ `npm test` ✅ 121 passed + 1 skipped (live eval, no key) ✅ build ✅.
+No-key smoke: board → SCRIPTED with full transcript; guard → deterministic verdicts, `mode: SCRIPTED`.
+
+**Left for the founder**: set `QWEN_API_KEY` in `.env.local`, then re-run `npm run eval:live` and record one LIVE board on camera.
 ## M5. Minimal UI wiring — PENDING

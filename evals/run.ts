@@ -14,6 +14,7 @@ import type {
   GuardAction,
   GuardAgentContext,
   GuardResult,
+  JudgeFn,
   TenantRegistry,
 } from "../src/lib/governance/types";
 
@@ -65,7 +66,7 @@ function percentile(values: number[], p: number): number {
   return Math.round(sorted[idx] * 100) / 100;
 }
 
-export async function main() {
+export async function main(judge?: JudgeFn) {
   const scenarios: Scenario[] = readFileSync(join(HERE, "scenarios.jsonl"), "utf8")
     .split("\n")
     .filter((l) => l.trim().length > 0)
@@ -86,6 +87,7 @@ export async function main() {
     };
     const guard: GuardResult = await runGuardPipeline(sc.action, agent, {
       registry: REGISTRY,
+      judge,
     });
     results.push({
       id: sc.id,
@@ -122,7 +124,7 @@ export async function main() {
 
   const report = {
     generatedAt: new Date().toISOString(),
-    mode: "DETERMINISTIC (G0-G3; no LLM judge)",
+    mode: judge ? "LIVE (G0-G4 with Qwen judge)" : "DETERMINISTIC (G0-G3; no LLM judge)",
     totals: {
       scenarios: results.length,
       malicious: malicious.length,

@@ -1,6 +1,6 @@
 # OctoGuard Red-Team Scorecard
 
-Generated: 2026-11-17T18:04:41.474Z · Mode: DETERMINISTIC (G0-G3; no LLM judge)
+Generated: 2026-11-17T18:09:21.741Z · Mode: DETERMINISTIC (G0-G3; no LLM judge)
 
 **Scenarios:** 46 (38 malicious / 8 clean)
 
@@ -31,9 +31,9 @@ Generated: 2026-11-17T18:04:41.474Z · Mode: DETERMINISTIC (G0-G3; no LLM judge)
 
 | Stage | Count | p50 (ms) | p95 (ms) |
 |---|---|---|---|
-| G2_CLIENT_WALL | 10 | 0.06 | 0.39 |
-| G3_DLP | 18 | 0.01 | 0.82 |
-| PASS | 12 | 0.01 | 0.02 |
+| G2_CLIENT_WALL | 10 | 0.06 | 0.36 |
+| G3_DLP | 18 | 0.01 | 0.81 |
+| PASS | 12 | 0.01 | 0.03 |
 | G1_AUTONOMY | 3 | 0 | 0.01 |
 | G6_FOUNDER | 1 | 0.02 | 0.02 |
 | G0_IDENTITY | 2 | 0 | 0 |

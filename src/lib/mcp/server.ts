@@ -14,6 +14,7 @@ import {
 } from "../api/schemas";
 import { checkPromotionGate } from "../governance/ladder";
 import { explain } from "../governance/trust";
+import type { JudgeFn } from "../governance/types";
 import type { GovernanceStore } from "../store/types";
 
 function json(payload: unknown) {
@@ -22,7 +23,7 @@ function json(payload: unknown) {
   };
 }
 
-export function buildOctoGuardMcpServer(store: GovernanceStore): McpServer {
+export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn): McpServer {
   const server = new McpServer({
     name: "octoguard",
     version: "0.1.0",
@@ -40,7 +41,7 @@ export function buildOctoGuardMcpServer(store: GovernanceStore): McpServer {
       inputSchema: guardActionSchema.shape,
     },
     async (args) => {
-      const result = await store.evaluate(args);
+      const result = await store.evaluate(args, judge);
       return json({
         verdict: result.guard.verdict,
         stage: result.guard.stage,

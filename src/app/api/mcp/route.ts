@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { checkWriteAuth } from "@/lib/api/auth";
+import { createQwenJudge } from "@/lib/llm/judge";
 import { buildOctoGuardMcpServer } from "@/lib/mcp/server";
 import { getStore } from "@/lib/store";
 
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
   const auth = checkWriteAuth(req);
   if (auth) return auth;
 
-  const server = buildOctoGuardMcpServer(getStore());
+  const server = buildOctoGuardMcpServer(getStore(), createQwenJudge());
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless: no session tracking
     enableJsonResponse: true, // plain JSON instead of SSE streams
