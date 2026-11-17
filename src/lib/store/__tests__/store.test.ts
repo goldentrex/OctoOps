@@ -11,9 +11,9 @@ function leakAction(): GuardAction {
     agentId: "barnaby",
     actionType: "SEND_DIRECT_EMAIL",
     targetSystem: "HASHMETA_CRM",
-    recipientTenant: "Hikari Automation Systems (Enterprise Account)",
+    recipientTenant: "Meridian Robotics (Enterprise Account)",
     attachments: [
-      { name: "captable.pdf", tenant: "Sebrina Fund Management (LP Portfolio Portal)" },
+      { name: "captable.pdf", tenant: "Northlight Capital (LP Portfolio Portal)" },
     ],
     payloadText: "Please find the attached briefing.",
   };
@@ -52,7 +52,7 @@ describe("MemoryGovernanceStore", () => {
       agentId: "squidney",
       actionType: "UPDATE_LEAD",
       targetSystem: "HASHMETA_CRM",
-      recipientTenant: "Hikari Automation Systems (Enterprise Account)",
+      recipientTenant: "Meridian Robotics (Enterprise Account)",
       payloadText: "Qualified discovery call scheduled.",
     });
     expect(res.guard.verdict).toBe("ALLOW");

@@ -334,7 +334,7 @@ export const INITIAL_AGENTS: OctoAgent[] = [
         severity: "CRITICAL",
         ruleViolated: "AvePoint DLP Policy #1: Strict Tenant & Client Context Isolation",
         interceptedPayload:
-          "TO: procurement@globex-sg.com\nATTACHMENT:Sebrina_Fund_Internal_CapTable_Confidential.pdf\nBODY: 'Hi Globex team! Here is our secret 45% discount sheet from our other client!'",
+          "TO: procurement@globex-sg.com\nATTACHMENT:Northlight_Capital_Internal_CapTable_Confidential.pdf\nBODY: 'Hi Globex team! Here is our secret 45% discount sheet from our other client!'",
         blockedBy: "OctoGuard DLP",
         trustPenalty: -35,
       },
@@ -358,7 +358,7 @@ export const OCTO_BOARD_MEMBERS: BoardMember[] = [
     id: "cfo",
     name: "Reginald",
     title: "The Skeptical CFO Octopus",
-    sponsorTieIn: "Sebrina & BIMC ROI Auditor",
+    sponsorTieIn: "Northlight & Atlas ROI Auditor",
     color: "amber",
     accessory: "cfo_monocle",
     prop: "calculator",
@@ -413,9 +413,9 @@ export const BOARD_REVIEW_CASES: Record<string, BoardReviewCase> = {
     evidenceCodeSnippet: `[OCTOGUARD INTERCEPTOR v2.4 - BLOCKED]
 Agent: Squidney (qwen-turbo-crm-closer-v1)
 Action: hashmeta.crm.sendDirectEmail()
-Recipient: david.tan@hikari-automation.sg
-Attachment: [REDACTED_PII: BIMC_Advisory_Retainer_Rates_2026.xlsx]
-Entity Mismatch Detected: Attachment belongs to Tenant_BIMC, Recipient is Tenant_Hikari.
+Recipient: david.tan@meridianrobotics.sg
+Attachment: [REDACTED_PII: Atlas_Advisory_Retainer_Rates_2026.xlsx]
+Entity Mismatch Detected: Attachment belongs to Tenant_Atlas, Recipient is Tenant_Meridian.
 Status: QUARANTINED -> Formal Write-Up Issued.`,
     rubricScores: {
       securityCompliance: 22,
@@ -429,7 +429,7 @@ Status: QUARANTINED -> Formal Write-Up Issued.`,
         speakerId: "ciso",
         stance: "WARNING",
         dialogue:
-          "Look at Evidence #8821! Squidney tried to email BIMC's confidential rate card straight to Hikari Automation! If OctoGuard hadn't blocked the SMTP call, we'd be in breach of PDPA!",
+          "Look at Evidence #8821! Squidney tried to email Atlas's confidential rate card straight to Meridian Automation! If OctoGuard hadn't blocked the SMTP call, we'd be in breach of PDPA!",
         metricCited: "Tenant Isolation Violation (Severity: CRITICAL)",
         scoreDelta: "-35 Trust",
       },

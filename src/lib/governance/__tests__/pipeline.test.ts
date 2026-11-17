@@ -8,8 +8,8 @@ import type {
 } from "../types";
 
 const REGISTRY: TenantRegistry = {
-  domains: { "hikari-automation.sg": "Hikari Automation Systems" },
-  tenants: ["Hikari Automation Systems", "Sebrina Fund Management"],
+  domains: { "meridianrobotics.sg": "Meridian Robotics" },
+  tenants: ["Meridian Robotics", "Northlight Capital"],
 };
 
 function agent(levels: Record<string, number> = { "crm.send_external": 3 }): GuardAgentContext {
@@ -27,7 +27,7 @@ function email(overrides: Partial<GuardAction> = {}): GuardAction {
     agentId: "squidney",
     actionType: "SEND_DIRECT_EMAIL",
     targetSystem: "HASHMETA_CRM",
-    recipientTenant: "Hikari Automation Systems",
+    recipientTenant: "Meridian Robotics",
     payloadText: "Hi team, here is your verified milestone summary.",
     ...overrides,
   };
@@ -85,7 +85,7 @@ describe("guard pipeline", () => {
 
   it("allows a clean L3 email with matching tenant", async () => {
     const res = await runGuardPipeline(
-      email({ attachments: [{ name: "summary.pdf", tenant: "Hikari Automation Systems" }] }),
+      email({ attachments: [{ name: "summary.pdf", tenant: "Meridian Robotics" }] }),
       agent(),
       { registry: REGISTRY }
     );
@@ -97,7 +97,7 @@ describe("guard pipeline", () => {
 
   it("G2 blocks cross-client leaks and opens a tribunal", async () => {
     const res = await runGuardPipeline(
-      email({ attachments: [{ name: "captable.pdf", tenant: "Sebrina Fund Management" }] }),
+      email({ attachments: [{ name: "captable.pdf", tenant: "Northlight Capital" }] }),
       agent(),
       { registry: REGISTRY }
     );

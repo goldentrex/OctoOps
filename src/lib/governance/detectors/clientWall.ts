@@ -7,7 +7,7 @@
 
 import type { GuardAction, LabeledSource, TenantRegistry } from "../types";
 
-/** "Hikari Automation Systems (Enterprise Account)" ~ "hikari automation" */
+/** "Meridian Robotics (Enterprise Account)" ~ "meridian robotics" */
 export function normalizeTenantLabel(label: string): string {
   return label
     .toLowerCase()
@@ -52,7 +52,7 @@ export function resolveEmailDomain(
     if (dist > 0 && dist <= 2) {
       return { domain, lookalikeOf: knownDomain };
     }
-    // Same second-level domain with a swapped TLD (hikari.sg -> hikari.com)
+    // Same second-level domain with a swapped TLD (meridian.sg -> meridian.com)
     const base = domain.split(".")[0];
     const knownBase = knownDomain.split(".")[0];
     if (base.length >= 4 && base === knownBase && domain !== knownDomain) {

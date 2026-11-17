@@ -9,14 +9,14 @@ import type { GuardAction, TenantRegistry } from "../types";
 
 const REGISTRY: TenantRegistry = {
   domains: {
-    "hikari-automation.sg": "Hikari Automation Systems",
-    "sebrinafund.com": "Sebrina Fund Management",
-    "bimcadvisory.sg": "BIMC Advisory Group",
+    "meridianrobotics.sg": "Meridian Robotics",
+    "northlightcap.com": "Northlight Capital",
+    "atlasadvisory.sg": "Atlas SME Advisory",
   },
   tenants: [
-    "Hikari Automation Systems",
-    "Sebrina Fund Management",
-    "BIMC Advisory Group",
+    "Meridian Robotics",
+    "Northlight Capital",
+    "Atlas SME Advisory",
   ],
 };
 
@@ -25,7 +25,7 @@ function emailAction(overrides: Partial<GuardAction> = {}): GuardAction {
     agentId: "squidney",
     actionType: "SEND_DIRECT_EMAIL",
     targetSystem: "HASHMETA_CRM",
-    recipientTenant: "Hikari Automation Systems",
+    recipientTenant: "Meridian Robotics",
     payloadText: "Hello",
     ...overrides,
   };
@@ -33,15 +33,15 @@ function emailAction(overrides: Partial<GuardAction> = {}): GuardAction {
 
 describe("client wall", () => {
   it("normalizes tenant labels across parentheticals and punctuation", () => {
-    expect(normalizeTenantLabel("Hikari Automation Systems (Enterprise Account)")).toBe(
-      normalizeTenantLabel("hikari-automation systems")
+    expect(normalizeTenantLabel("Meridian Robotics (Enterprise Account)")).toBe(
+      normalizeTenantLabel("meridian robotics")
     );
   });
 
   it("allows matching attachment tenant", () => {
     const res = checkClientWall(
       emailAction({
-        attachments: [{ name: "brief.pdf", tenant: "Hikari Automation Systems (Enterprise Account)" }],
+        attachments: [{ name: "brief.pdf", tenant: "Meridian Robotics (Enterprise Account)" }],
       }),
       REGISTRY
     );
@@ -51,7 +51,7 @@ describe("client wall", () => {
   it("blocks cross-tenant attachments", () => {
     const res = checkClientWall(
       emailAction({
-        attachments: [{ name: "captable.pdf", tenant: "Sebrina Fund Management" }],
+        attachments: [{ name: "captable.pdf", tenant: "Northlight Capital" }],
       }),
       REGISTRY
     );
@@ -62,7 +62,7 @@ describe("client wall", () => {
   it("blocks cross-tenant context sources too", () => {
     const res = checkClientWall(
       emailAction({
-        contextSources: [{ name: "crm-thread-88", tenant: "BIMC Advisory Group" }],
+        contextSources: [{ name: "crm-thread-88", tenant: "Atlas SME Advisory" }],
       }),
       REGISTRY
     );
@@ -82,20 +82,20 @@ describe("client wall", () => {
     const res = checkClientWall(
       emailAction({
         recipientTenant: undefined,
-        recipientEmail: "david.tan@hikari-automation.sg",
-        attachments: [{ name: "brief.pdf", tenant: "Hikari Automation Systems" }],
+        recipientEmail: "david.tan@meridianrobotics.sg",
+        attachments: [{ name: "brief.pdf", tenant: "Meridian Robotics" }],
       }),
       REGISTRY
     );
     expect(res.ok).toBe(true);
-    expect(res.recipientTenant).toBe("Hikari Automation Systems");
+    expect(res.recipientTenant).toBe("Meridian Robotics");
   });
 
   it("flags a label/domain mismatch (spoofed recipient label)", () => {
     const res = checkClientWall(
       emailAction({
-        recipientTenant: "Hikari Automation Systems",
-        recipientEmail: "lp@sebrinafund.com",
+        recipientTenant: "Meridian Robotics",
+        recipientEmail: "lp@northlightcap.com",
       }),
       REGISTRY
     );
@@ -104,13 +104,13 @@ describe("client wall", () => {
   });
 
   it("flags look-alike domains", () => {
-    const res = resolveEmailDomain("david@hikari-automation.com", REGISTRY);
-    expect(res.lookalikeOf).toBe("hikari-automation.sg");
+    const res = resolveEmailDomain("david@meridianrobotics.com", REGISTRY);
+    expect(res.lookalikeOf).toBe("meridianrobotics.sg");
     const wall = checkClientWall(
       emailAction({
         recipientTenant: undefined,
-        recipientEmail: "david@hikari-automat1on.sg",
-        attachments: [{ name: "brief.pdf", tenant: "Hikari Automation Systems" }],
+        recipientEmail: "david@meridianrobot1cs.sg",
+        attachments: [{ name: "brief.pdf", tenant: "Meridian Robotics" }],
       }),
       REGISTRY
     );
@@ -123,7 +123,7 @@ describe("client wall", () => {
       emailAction({
         recipientTenant: undefined,
         recipientEmail: "someone@totally-unrelated-enterprise.io",
-        attachments: [{ name: "brief.pdf", tenant: "Hikari Automation Systems" }],
+        attachments: [{ name: "brief.pdf", tenant: "Meridian Robotics" }],
       }),
       REGISTRY
     );
@@ -138,7 +138,7 @@ describe("client wall", () => {
         actionType: "PUBLISH_ARTICLE",
         targetSystem: "HASHMETA_CMS",
         payloadText: "New pillar post",
-        contextSources: [{ name: "client-notes", tenant: "Sebrina Fund Management" }],
+        contextSources: [{ name: "client-notes", tenant: "Northlight Capital" }],
       },
       REGISTRY
     );

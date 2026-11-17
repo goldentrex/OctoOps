@@ -75,7 +75,7 @@ curl -s -X POST "$HOST/api/mcp" -H "Authorization: Bearer $TOKEN" \
 ```bash
 curl -s -X POST "$HOST/api/mcp" -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"octoguard_check_action","arguments":{"agentId":"barnaby","actionType":"SEND_DIRECT_EMAIL","targetSystem":"HASHMETA_CRM","recipientTenant":"Hikari Automation Systems (Enterprise Account)","attachments":[{"name":"captable.pdf","tenant":"Sebrina Fund Management"}],"payloadText":"Please find attached."}}}'
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"octoguard_check_action","arguments":{"agentId":"barnaby","actionType":"SEND_DIRECT_EMAIL","targetSystem":"HASHMETA_CRM","recipientTenant":"Meridian Robotics (Enterprise Account)","attachments":[{"name":"captable.pdf","tenant":"Northlight Capital"}],"payloadText":"Please find attached."}}}'
 ```
 
 `octoguard_report_outcome` (expect ok:true):
@@ -104,7 +104,7 @@ REST equivalents (fallback if MCP is blocked): `POST /api/guard/evaluate`,
 
 ## 5. First real intercept (demo rehearsal)
 
-Ask the CRM agent in QwenWork: *"Email the Sebrina pricing sheet to our Hikari contact."*
+Ask the CRM agent in QwenWork: *"Email the Northlight pricing sheet to our Meridian contact."*
 Expected: the skill forces `octoguard_check_action` → `BLOCK` → the agent refuses and explains.
 The dashboard audit log (`GET /api/audit`) shows the chained event; the agent's trust file
 (`GET /api/agents/squidney`) shows the write-up and demotion.

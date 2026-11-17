@@ -280,10 +280,10 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
       "Solo B2B advisory running GEO content, QwenWork delivery ops, outbound CRM, billing, and NDA DLP guardrails.",
     portalEndpointSlug: "vanguard-advisory.hashmeta.ai/meet-our-ai-team",
     clientPortalAccounts: [
-      "Hikari Automation Systems (Enterprise Account)",
-      "Sebrina Fund Management (LP Portfolio Portal)",
-      "BIMC Advisory Group (SME Transformation)",
-      "AvePoint Singapore (AI Trust Audit Partner)",
+      "Meridian Robotics (Enterprise Account)",
+      "Northlight Capital (LP Portfolio Portal)",
+      "Atlas SME Advisory (SME Transformation)",
+      "Keystone Cloud Audit (AI Trust Audit Partner)",
     ],
     demoConfig: {
       leakTargetSeatId: "seat-crm",
