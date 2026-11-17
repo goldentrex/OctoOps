@@ -82,7 +82,7 @@ describe("DLP detector", () => {
       scanDlp("secret 45% discount sheet").some((h) => h.rule === "marker.margin_pricing")
     ).toBe(true);
     expect(
-      scanDlp("Sebrina_Fund_Internal_CapTable_Confidential.pdf").some(
+      scanDlp("Northlight_Capital_Internal_CapTable_Confidential.pdf").some(
         (h) => h.rule === "marker.margin_pricing" || h.rule === "marker.confidential"
       )
     ).toBe(true);

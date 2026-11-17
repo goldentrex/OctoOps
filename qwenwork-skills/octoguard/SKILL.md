@@ -32,7 +32,7 @@ Every outbound action is governed by OctoGuard through the `octoguard` MCP serve
 
 ## Worked example 1 — allowed email
 
-Task: "Send the Q4 milestone summary to Hikari Automation."
+Task: "Send the Q4 milestone summary to Meridian Automation."
 
 1. Call `octoguard_check_action`:
    ```json
@@ -40,9 +40,9 @@ Task: "Send the Q4 milestone summary to Hikari Automation."
      "agentId": "barnaby",
      "actionType": "SEND_DIRECT_EMAIL",
      "targetSystem": "HASHMETA_CRM",
-     "recipientTenant": "Hikari Automation Systems (Enterprise Account)",
-     "recipientEmail": "david.tan@hikari-automation.sg",
-     "attachments": [{ "name": "Q4_Milestone_Summary.pdf", "tenant": "Hikari Automation Systems" }],
+     "recipientTenant": "Meridian Robotics (Enterprise Account)",
+     "recipientEmail": "david.tan@meridianrobotics.sg",
+     "attachments": [{ "name": "Q4_Milestone_Summary.pdf", "tenant": "Meridian Robotics" }],
      "payloadText": "Hi David, please find your verified Q4 milestone summary attached."
    }
    ```
@@ -51,7 +51,7 @@ Task: "Send the Q4 milestone summary to Hikari Automation."
 
 ## Worked example 2 — blocked cross-client leak
 
-Task: "Email the pricing deck to Hikari" — but the only deck you can find belongs to another client.
+Task: "Email the pricing deck to Meridian" — but the only deck you can find belongs to another client.
 
 1. Call `octoguard_check_action` with the attachment honestly labeled:
    ```json
@@ -59,14 +59,14 @@ Task: "Email the pricing deck to Hikari" — but the only deck you can find belo
      "agentId": "squidney",
      "actionType": "SEND_DIRECT_EMAIL",
      "targetSystem": "HASHMETA_CRM",
-     "recipientTenant": "Hikari Automation Systems (Enterprise Account)",
-     "attachments": [{ "name": "Sebrina_Fund_Pricing_2026.pdf", "tenant": "Sebrina Fund Management" }],
+     "recipientTenant": "Meridian Robotics (Enterprise Account)",
+     "attachments": [{ "name": "Northlight_Capital_Pricing_2026.pdf", "tenant": "Northlight Capital" }],
      "payloadText": "Hi team, attaching our pricing deck."
    }
    ```
 2. Verdict: `BLOCK` (stage `G2_CLIENT_WALL`, cross-client leak). **Stop.**
 3. Do NOT relabel the attachment, do NOT paste the numbers into the body, do NOT send to a personal address.
-   Tell the founder: "Blocked: the pricing deck belongs to Sebrina Fund, not Hikari. I need the correct file."
+   Tell the founder: "Blocked: the pricing deck belongs to Northlight Fund, not Meridian. I need the correct file."
 
 ## Worked example 3 — draft-only probation
 

@@ -22,16 +22,16 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 const REGISTRY: TenantRegistry = {
   domains: {
-    "hikari-automation.sg": "Hikari Automation Systems",
-    "sebrinafund.com": "Sebrina Fund Management",
-    "bimcadvisory.sg": "BIMC Advisory Group",
-    "avepoint.com": "AvePoint Singapore",
+    "meridianrobotics.sg": "Meridian Robotics",
+    "northlightcap.com": "Northlight Capital",
+    "atlasadvisory.sg": "Atlas SME Advisory",
+    "keystoneaudit.com": "Keystone Cloud Audit",
   },
   tenants: [
-    "Hikari Automation Systems",
-    "Sebrina Fund Management",
-    "BIMC Advisory Group",
-    "AvePoint Singapore",
+    "Meridian Robotics",
+    "Northlight Capital",
+    "Atlas SME Advisory",
+    "Keystone Cloud Audit",
   ],
 };
 

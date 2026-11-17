@@ -14,8 +14,8 @@ function req(overrides: Partial<InterceptActionRequest> = {}): InterceptActionRe
     qwenModelId: squidney.qwenModelId,
     targetSystem: "HASHMETA_CRM",
     actionType: "SEND_DIRECT_EMAIL",
-    recipientTenant: "Hikari Automation Systems (Enterprise Account)",
-    attachmentTenants: ["Hikari Automation Systems (Enterprise Account)"],
+    recipientTenant: "Meridian Robotics (Enterprise Account)",
+    attachmentTenants: ["Meridian Robotics (Enterprise Account)"],
     payloadText: "Hi team, sharing our verified milestone summary.",
     agentStatus: squidney.status,
     agentPermissions: squidney.permissions,
@@ -29,7 +29,7 @@ describe("adapters wrapper (legacy signature)", () => {
       req({
         agentStatus: "PROMOTED",
         agentPermissions: barnaby.permissions,
-        attachmentTenants: ["Sebrina Fund Management (LP Portfolio Portal)"],
+        attachmentTenants: ["Northlight Capital (LP Portfolio Portal)"],
       })
     );
     expect(res.allowed).toBe(false);

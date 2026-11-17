@@ -43,10 +43,10 @@ export function capabilityForPermission(perm: PermissionScope): string {
 
 /** Demo tenant email domains (fictional clients; matches board evidence text). */
 const DEMO_DOMAINS: Record<string, string> = {
-  "hikari-automation.sg": "Hikari Automation Systems",
-  "sebrinafund.com": "Sebrina Fund Management",
-  "bimcadvisory.sg": "BIMC Advisory Group",
-  "avepoint.com": "AvePoint Singapore",
+  "meridianrobotics.sg": "Meridian Robotics",
+  "northlightcap.com": "Northlight Capital",
+  "atlasadvisory.sg": "Atlas SME Advisory",
+  "keystoneaudit.com": "Keystone Cloud Audit",
 };
 
 export interface SeedState {

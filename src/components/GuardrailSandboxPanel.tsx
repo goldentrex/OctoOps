@@ -53,10 +53,10 @@ export const GuardrailSandboxPanel: React.FC<GuardrailSandboxPanelProps> = ({
   const [actionType, setActionType] =
     useState<InterceptActionRequest["actionType"]>("SEND_DIRECT_EMAIL");
   const [recipientTenant, setRecipientTenant] = useState<string>(
-    clientOptions[0] ?? "Hikari Automation Systems (Enterprise Account)"
+    clientOptions[0] ?? "Meridian Robotics (Enterprise Account)"
   );
   const [attachmentTenant, setAttachmentTenant] = useState<string>(
-    clientOptions[1] ?? clientOptions[0] ?? "Sebrina Fund Management"
+    clientOptions[1] ?? clientOptions[0] ?? "Northlight Capital"
   );
   const [includeAttachment, setIncludeAttachment] = useState<boolean>(true);
   const [payloadText, setPayloadText] = useState<string>(
