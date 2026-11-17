@@ -29,7 +29,26 @@ A fresh session can resume from this file alone.
 - LOCKED permission → BLOCK (was a "held as draft" message); DRAFT_ONLY → DRAFT verdict.
 - Gating (DRAFT/HOLD) no longer deducts trust; only real violations do.
 
-## M2. Server and store — PENDING
+## M2. Server and store — DONE
+
+**Built**:
+- `src/lib/store/types.ts` — `GovernanceStore` interface (hosted DB can replace it).
+- `src/lib/store/seed.ts` — seeds from `buildPresetSnapshot()`; permission→capability mapping; demo tenant domains.
+- `src/lib/store/memoryStore.ts` — evaluate (pipeline + trust/ladder updates + write-ups + approvals + metrics + hash-chained audit),
+  outcome reporting, approval approve/reject/edit, scripted board cases, metrics (p50/p95, autonomy rate), reset, serialize/hydrate.
+- `src/lib/store/fileStore.ts` — JSON persistence at `.data/governance.json` (git-ignored), corrupt-file fail-safe, budget re-linking.
+- `src/lib/store/index.ts` — `getStore()` singleton (globalThis, HMR-safe). Env: `OCTOGUARD_STORE`, `OCTOGUARD_PRESET`.
+- `src/lib/api/auth.ts` — bearer `OCTOGUARD_API_TOKEN` on write routes; localhost-only when unset. Reads stay public (portal embed).
+- `src/lib/api/schemas.ts` — zod schemas for all bodies.
+- Routes: `POST /api/guard/evaluate`, `POST /api/guard/outcome`, `GET /api/agents`, `GET /api/agents/[id]` (with trust explanations),
+  `GET /api/audit`, `GET /api/audit/verify`, `GET /api/approvals`, `POST /api/approvals/[id]`, `POST /api/board/deliberate` (scripted until M4), `GET /api/metrics`.
+- Semantics fix in `detectors/rbac.ts`: L2 = approval-required, so medium-risk actions (required ≥ L2) only run autonomously from L3+.
+
+**Verified**: `npx tsc --noEmit` ✅ · `npm test` ✅ 111/111 · `npm run lint` ✅ · `npm run build` ✅ (10 API routes).
+Live smoke test against `next start`: cross-tenant leak BLOCK (-35, tribunal, capability demoted to L1), safe update ALLOW,
+DRAFT approval queued → EDIT resolved, outcome CLEAN fed trust, audit chain valid, zod 422 on bad body. `.data/` removed after smoke test.
+
+**Left**: G4 judge injection + live board land in M4; Founder's Desk UI is M5+1 (per kickoff, out of scope tonight).
 ## M3. QwenWork integration surface — PENDING
 ## M6. Red-team scorecard — PENDING
 ## M4. Qwen judge and live board — PENDING

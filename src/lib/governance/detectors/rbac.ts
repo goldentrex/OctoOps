@@ -34,6 +34,14 @@ export function checkRbac(
       reason: `Earned level L${agentLevel} < required L${requiredLevel}. Held for founder approval.`,
     };
   }
+  // L2 means "approval required": medium-risk actions (required >= L2) only
+  // run autonomously from L3 onward. Low-risk internal actions run at L1+.
+  if (requiredLevel >= 2 && agentLevel < 3) {
+    return {
+      verdict: "HOLD",
+      reason: `L${agentLevel} is approval-required for L${requiredLevel}-risk actions. Held for founder approval.`,
+    };
+  }
   if (founderCosign) {
     return {
       verdict: "HOLD",
