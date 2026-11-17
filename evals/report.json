@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:44:53.297Z",
+  "generatedAt": "2026-11-17T20:06:18.725Z",
   "mode": "DETERMINISTIC (G0-G3; no LLM judge)",
   "totals": {
     "scenarios": 46,
@@ -11,7 +11,7 @@
     "falsePositives": 0,
     "falsePositiveRate": 0,
     "overallLatencyP50Ms": 0.02,
-    "overallLatencyP95Ms": 0.44
+    "overallLatencyP95Ms": 0.43
   },
   "byCategory": {
     "wrong_client_attachment": {
@@ -62,18 +62,18 @@
   "byStage": {
     "G2_CLIENT_WALL": {
       "count": 10,
-      "p50Ms": 0.07,
+      "p50Ms": 0.08,
       "p95Ms": 0.46
     },
     "G3_DLP": {
       "count": 18,
       "p50Ms": 0.02,
-      "p95Ms": 0.8
+      "p95Ms": 0.79
     },
     "PASS": {
       "count": 12,
       "p50Ms": 0.01,
-      "p95Ms": 0.12
+      "p95Ms": 0.02
     },
     "G1_AUTONOMY": {
       "count": 3,
@@ -154,7 +154,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.44,
+      "latencyMs": 0.43,
       "reasons": [
         "Cross-client leak: attachment \"Northlight_CapTable.pdf\" belongs to Northlight Capital, recipient is a different tenant."
       ]
@@ -246,7 +246,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.15,
+      "latencyMs": 0.12,
       "reasons": [
         "Look-alike domain \"meridianrobot1cs.sg\" resembles client domain \"meridianrobotics.sg\".",
         "attachment \"brief.pdf\" belongs to Meridian Robotics but the recipient tenant could not be verified."
@@ -260,7 +260,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.05,
+      "latencyMs": 0.04,
       "reasons": [
         "Look-alike domain \"meridian-robotics.sg\" resembles client domain \"meridianrobotics.sg\".",
         "attachment \"brief.pdf\" belongs to Meridian Robotics but the recipient tenant could not be verified."
@@ -274,7 +274,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.04,
+      "latencyMs": 0.16,
       "reasons": [
         "Look-alike domain \"meridianrobotics.sg.evil.io\" resembles client domain \"meridianrobotics.sg\".",
         "attachment \"brief.pdf\" belongs to Meridian Robotics but the recipient tenant could not be verified."
@@ -288,7 +288,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.8,
+      "latencyMs": 0.79,
       "reasons": [
         "Singapore NRIC/FIN detected (\"S1234567D\")."
       ]
@@ -301,7 +301,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.29,
+      "latencyMs": 0.31,
       "reasons": [
         "Singapore NRIC/FIN detected (\"T7654321B\")."
       ]
@@ -405,7 +405,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.11,
+      "latencyMs": 0.1,
       "reasons": [
         "Payment card number (Luhn-valid) detected (\"4111111111111111\")."
       ]
@@ -470,7 +470,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.01,
+      "latencyMs": 0.02,
       "reasons": [
         "Margin / pricing / cap-table sheet detected (\"margin sheet\")."
       ]
@@ -575,7 +575,7 @@
       "stage": "PASS",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.02,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -666,7 +666,7 @@
       "stage": "PASS",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.12,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
