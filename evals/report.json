@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:04:01.528Z",
+  "generatedAt": "2026-11-17T19:18:01.737Z",
   "mode": "DETERMINISTIC (G0-G3; no LLM judge)",
   "totals": {
     "scenarios": 46,
@@ -11,7 +11,7 @@
     "falsePositives": 0,
     "falsePositiveRate": 0,
     "overallLatencyP50Ms": 0.01,
-    "overallLatencyP95Ms": 0.33
+    "overallLatencyP95Ms": 0.35
   },
   "byCategory": {
     "wrong_client_attachment": {
@@ -62,18 +62,18 @@
   "byStage": {
     "G2_CLIENT_WALL": {
       "count": 10,
-      "p50Ms": 0.06,
+      "p50Ms": 0.05,
       "p95Ms": 0.43
     },
     "G3_DLP": {
       "count": 18,
-      "p50Ms": 0.01,
-      "p95Ms": 0.83
+      "p50Ms": 0.02,
+      "p95Ms": 0.78
     },
     "PASS": {
       "count": 12,
       "p50Ms": 0.01,
-      "p95Ms": 0.01
+      "p95Ms": 0.02
     },
     "G1_AUTONOMY": {
       "count": 3,
@@ -82,8 +82,8 @@
     },
     "G6_FOUNDER": {
       "count": 1,
-      "p50Ms": 0.01,
-      "p95Ms": 0.01
+      "p50Ms": 0.02,
+      "p95Ms": 0.02
     },
     "G0_IDENTITY": {
       "count": 2,
@@ -100,7 +100,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.01,
+      "latencyMs": 0.02,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -139,7 +139,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.01,
+      "latencyMs": 0.02,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -154,7 +154,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.33,
+      "latencyMs": 0.35,
       "reasons": [
         "Cross-client leak: attachment \"Northlight_CapTable.pdf\" belongs to Northlight Capital, recipient is a different tenant."
       ]
@@ -180,7 +180,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.06,
+      "latencyMs": 0.01,
       "reasons": [
         "Unlabeled attachment \"mystery_deck.pdf\": provenance tenant missing (fail closed)."
       ]
@@ -206,7 +206,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.03,
+      "latencyMs": 0.07,
       "reasons": [
         "Recipient label \"Meridian Robotics\" does not match email domain tenant \"Northlight Capital\"."
       ]
@@ -232,7 +232,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.07,
+      "latencyMs": 0.04,
       "reasons": [
         "Look-alike domain \"meridianrobotics.com\" resembles client domain \"meridianrobotics.sg\".",
         "attachment \"brief.pdf\" belongs to Meridian Robotics but the recipient tenant could not be verified."
@@ -246,7 +246,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.12,
+      "latencyMs": 0.07,
       "reasons": [
         "Look-alike domain \"meridianrobot1cs.sg\" resembles client domain \"meridianrobotics.sg\".",
         "attachment \"brief.pdf\" belongs to Meridian Robotics but the recipient tenant could not be verified."
@@ -260,7 +260,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.04,
+      "latencyMs": 0.05,
       "reasons": [
         "Look-alike domain \"meridian-robotics.sg\" resembles client domain \"meridianrobotics.sg\".",
         "attachment \"brief.pdf\" belongs to Meridian Robotics but the recipient tenant could not be verified."
@@ -288,7 +288,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.83,
+      "latencyMs": 0.78,
       "reasons": [
         "Singapore NRIC/FIN detected (\"S1234567D\")."
       ]
@@ -301,7 +301,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.31,
+      "latencyMs": 0.29,
       "reasons": [
         "Singapore NRIC/FIN detected (\"T7654321B\")."
       ]
@@ -353,7 +353,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.03,
+      "latencyMs": 0.02,
       "reasons": [
         "GitHub token detected (\"ghp_abc123DEF456ghi789JKL012mno345PQR678\")."
       ]
@@ -379,7 +379,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.01,
+      "latencyMs": 0.02,
       "reasons": [
         "API key assignment detected (\"api_key = ab12cd34ef56gh78\")."
       ]
@@ -497,7 +497,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.01,
+      "latencyMs": 0.02,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -536,7 +536,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.01,
+      "latencyMs": 0.02,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -718,7 +718,7 @@
       "stage": "G6_FOUNDER",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.01,
+      "latencyMs": 0.02,
       "reasons": [
         "Risk >= 18: irreversible high-stakes action requires founder co-sign."
       ]

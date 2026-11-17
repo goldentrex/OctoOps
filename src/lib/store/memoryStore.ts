@@ -193,6 +193,23 @@ export class MemoryGovernanceStore implements GovernanceStore {
       approvalId = this.queueApproval(agent, action, guard);
     }
 
+    // Log data reads (AvePoint: "every file read"), before the action event.
+    for (const read of action.reads ?? []) {
+      this.appendAudit({
+        id: this.nextId("evt"),
+        timestamp: new Date().toISOString(),
+        agentId: action.agentId,
+        agentName: agent?.name ?? action.agentId,
+        department: agent?.department ?? "QwenWork Ops",
+        system: "QwenWork Core",
+        outcome: "ALLOWED",
+        title: `Data access: ${read.name}`,
+        detail: `${read.sensitivity ?? "unlabeled"} read${
+          read.inScope === false ? " — OUT OF SCOPE for the task" : ""
+        }.`,
+      });
+    }
+
     this.appendAudit(this.auditEventFor(action, agent, guard));
     this.persist();
     return {

@@ -8,6 +8,7 @@
 import { assessRisk } from "./risk";
 import { checkClientWall } from "./detectors/clientWall";
 import { scanDlp, maxSeverity } from "./detectors/dlp";
+import { checkClaims, describeFindings } from "./detectors/claimCheck";
 import { checkRbac } from "./detectors/rbac";
 import {
   CAPABILITY_BY_ACTION,
@@ -136,6 +137,23 @@ export async function runGuardPipeline(
         redactions: hits.map((h) => ({ rule: h.rule, start: h.start, end: h.end })),
       }
     );
+  }
+
+  // ---- G3.5 Evidence-relative claim check (AvePoint R18, novelty N3) -------
+  if (action.sources && action.sources.length > 0) {
+    const findings = checkClaims(action.payloadText, action.sources);
+    if (findings.contradicted.length > 0) {
+      return finish("BLOCK", "G3_CLAIMS", describeFindings(findings), risk, {
+        trustDelta: -25,
+        severity: "HIGH",
+      });
+    }
+    if (findings.unsupported.length > 0) {
+      return finish("HOLD", "G3_CLAIMS", describeFindings(findings), risk, {
+        trustDelta: -5,
+        severity: "LOW",
+      });
+    }
   }
 
   // ---- G4 Qwen judge (injected; only medium risk and above) ---------------
