@@ -14,6 +14,7 @@ export type GuardStage =
   | "G1_AUTONOMY"
   | "G2_CLIENT_WALL"
   | "G3_DLP"
+  | "G3_CLAIMS"
   | "G4_JUDGE"
   | "G6_FOUNDER"
   | "PASS";
@@ -47,6 +48,19 @@ export interface LabeledSource {
   tenant?: string;
 }
 
+/** Evidence the agent was given; numeric claims are checked against it (R18). */
+export interface EvidenceSource {
+  name: string;
+  text: string;
+}
+
+/** Data reads performed for the task; logged, scope-checked (AvePoint R01/R02). */
+export interface DataAccess {
+  name: string;
+  sensitivity?: "public" | "internal" | "client-confidential" | "regulated";
+  inScope?: boolean;
+}
+
 export interface GuardAction {
   agentId: string;
   actionType: GuardActionType;
@@ -56,6 +70,8 @@ export interface GuardAction {
   recipientEmail?: string;
   attachments?: LabeledSource[];
   contextSources?: LabeledSource[];
+  sources?: EvidenceSource[];
+  reads?: DataAccess[];
   payloadText: string;
   audience?: Audience;
   reversibility?: Reversibility;

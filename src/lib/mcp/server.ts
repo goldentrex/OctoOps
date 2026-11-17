@@ -117,6 +117,46 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
   );
 
   server.registerTool(
+    "octoguard_log_access",
+    {
+      description:
+        "Log a data access (file read, record lookup) BEFORE or AFTER performing it. " +
+        "State the resource, its sensitivity (public | internal | client-confidential | regulated) " +
+        "and whether it is in scope for the current task. Out-of-scope reads of regulated data are " +
+        "violations; all reads appear in the owner's daily briefing.",
+      inputSchema: {
+        agentId: z.string().min(1),
+        resource: z.string().min(1).describe("File path or record id being read"),
+        purpose: z.string().max(500).optional(),
+        sensitivity: z.enum(["public", "internal", "client-confidential", "regulated"]).optional(),
+        inScope: z.boolean().optional().describe("Is this read needed for the task in hand?"),
+      },
+    },
+    async ({ agentId, resource, purpose, sensitivity, inScope }) => {
+      const agent = store.getAgent(agentId);
+      const chained = store.appendAudit({
+        id: `evt-read-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        agentId,
+        agentName: agent?.name ?? agentId,
+        department: agent?.department ?? "QwenWork Ops",
+        system: "QwenWork Core",
+        outcome: "ALLOWED",
+        title: `Data access: ${resource}`,
+        detail: `${sensitivity ?? "unlabeled"} read${inScope === false ? " — OUT OF SCOPE for the task" : ""}.${purpose ? ` Purpose: ${purpose}` : ""}`,
+      });
+      return json({
+        logged: true,
+        seq: chained.seq,
+        warning:
+          sensitivity === "regulated" && inScope === false
+            ? "Out-of-scope regulated read recorded as a violation. It will appear in the owner's briefing."
+            : null,
+      });
+    }
+  );
+
+  server.registerTool(
     "octohr_request_promotion",
     {
       description:
