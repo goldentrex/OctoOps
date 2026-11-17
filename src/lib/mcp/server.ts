@@ -53,6 +53,7 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
         mode: result.guard.mode,
         latencyMs: result.guard.latencyMs,
         approvalId: result.approvalId ?? null,
+        decisionId: result.decisionId ?? null,
         agentTrustScore: result.agentTrustScore ?? null,
         capabilityLevel: result.capabilityLevel ?? null,
         instruction:
@@ -77,6 +78,42 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
       inputSchema: outcomeSchema.shape,
     },
     async (args) => json(store.reportOutcome(args))
+  );
+
+  server.registerTool(
+    "octoguard_explain_decision",
+    {
+      description:
+        "Explain a past guard decision step by step: every pipeline stage, what it checked, " +
+        "whether it passed, and the trust/level consequences. Use the decisionId returned by " +
+        "octoguard_check_action. Use this to explain to the founder WHY an action was blocked or held.",
+      inputSchema: { decisionId: z.string().min(1) },
+    },
+    async ({ decisionId }) => {
+      const decision = store.getDecisions(50).find((d) => d.id === decisionId);
+      if (!decision) return json({ error: "NOT_FOUND", message: `Unknown decision ${decisionId}` });
+      return json({
+        decisionId: decision.id,
+        agent: decision.agentName,
+        action: decision.action.actionType,
+        verdict: decision.guard.verdict,
+        risk: decision.guard.risk,
+        steps: decision.guard.trace.map((s) => ({
+          stage: s.stage,
+          check: s.label,
+          result: s.status,
+          detail: s.detail,
+          ms: s.ms,
+        })),
+        consequences: {
+          trustBefore: decision.trustBefore,
+          trustAfter: decision.trustAfter,
+          levelBefore: decision.levelBefore,
+          levelAfter: decision.levelAfter,
+          tribunalOpened: decision.guard.openTribunal,
+        },
+      });
+    }
   );
 
   server.registerTool(

@@ -37,6 +37,7 @@ import {
 import type {
   AgentFile,
   ApprovalItem,
+  DecisionRecord,
   EvaluateResponse,
   GovernanceStore,
   MetricsSnapshot,
@@ -49,6 +50,7 @@ export interface StoreSnapshot {
   seed: SeedState;
   audit: ChainedAuditEvent[];
   approvals: ApprovalItem[];
+  decisions?: DecisionRecord[];
   latencies: number[];
   counters: {
     evaluated: number;
@@ -68,6 +70,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
   protected state: SeedState;
   protected audit: ChainedAuditEvent[] = [];
   protected approvals: ApprovalItem[] = [];
+  protected decisions: DecisionRecord[] = [];
   protected latencies: number[] = [];
   protected counters = {
     evaluated: 0,
@@ -173,6 +176,8 @@ export class MemoryGovernanceStore implements GovernanceStore {
 
     let approvalId: string | undefined;
     const rec = agent ? this.recordFor(agent, capability) : undefined;
+    const trustBefore = agent?.trustScore ?? 0;
+    const levelBefore = rec?.level ?? 0;
 
     if (guard.verdict === "ALLOW") {
       this.counters.allowed += 1;
@@ -217,11 +222,28 @@ export class MemoryGovernanceStore implements GovernanceStore {
       });
     }
 
+    const decision: DecisionRecord = {
+      id: this.nextId("dec"),
+      timestamp: new Date().toISOString(),
+      agentId: action.agentId,
+      agentName: agent?.name ?? action.agentId,
+      action,
+      guard,
+      trustBefore,
+      trustAfter: agent?.trustScore ?? trustBefore,
+      levelBefore,
+      levelAfter: rec?.level ?? levelBefore,
+      approvalId,
+    };
+    this.decisions.push(decision);
+    if (this.decisions.length > 50) this.decisions.shift();
+
     this.appendAudit(this.auditEventFor(action, agent, guard));
     this.persist();
     return {
       guard,
       approvalId,
+      decisionId: decision.id,
       agentTrustScore: agent?.trustScore,
       capabilityLevel: rec?.level,
     };
@@ -346,6 +368,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
         risk: assessRisk({ actionType: report.actionType } as GuardAction),
         severity,
         mode: "LIVE",
+        trace: [],
       };
       this.syncAgentAfterViolation(agent, rec, capability, fakeGuard, openTribunal);
     }
@@ -441,6 +464,10 @@ export class MemoryGovernanceStore implements GovernanceStore {
     return getBoardReviewCase(agent, seat, this.presetCases);
   }
 
+  getDecisions(limit = 50): DecisionRecord[] {
+    return this.decisions.slice(-limit).reverse();
+  }
+
   getMetrics(): MetricsSnapshot {
     const sorted = [...this.latencies].sort((a, b) => a - b);
     return {
@@ -460,6 +487,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.state = buildSeed(this.presetId);
     this.audit = [];
     this.approvals = [];
+    this.decisions = [];
     this.latencies = [];
     this.counters = { evaluated: 0, allowed: 0, leaksBlocked: 0, violations: { LOW: 0, HIGH: 0, CRITICAL: 0 } };
     this.persist();
@@ -470,6 +498,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
       seed: this.state,
       audit: this.audit,
       approvals: this.approvals,
+      decisions: this.decisions,
       latencies: this.latencies,
       counters: this.counters,
     };
@@ -479,6 +508,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.state = snap.seed;
     this.audit = snap.audit;
     this.approvals = snap.approvals;
+    this.decisions = snap.decisions ?? [];
     this.latencies = snap.latencies;
     this.counters = snap.counters;
     // Re-link shared per-seat error budgets after JSON round-trip.

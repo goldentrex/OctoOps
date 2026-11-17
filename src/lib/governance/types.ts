@@ -121,6 +121,15 @@ export interface RedactionSpan {
   end: number;
 }
 
+/** One step of the guard pipeline, for the Engine Room decision inspector. */
+export interface StageTrace {
+  stage: GuardStage;
+  label: string;
+  status: "PASS" | "FAIL" | "HOLD" | "SKIP";
+  detail: string;
+  ms: number;
+}
+
 export interface GuardResult {
   verdict: GuardVerdict;
   stage: GuardStage;
@@ -133,4 +142,5 @@ export interface GuardResult {
   redactions?: RedactionSpan[];
   mode: "LIVE" | "SCRIPTED";
   g4?: JudgeResult;
+  trace: StageTrace[];
 }

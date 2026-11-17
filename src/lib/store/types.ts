@@ -54,8 +54,24 @@ export interface MetricsSnapshot {
 export interface EvaluateResponse {
   guard: GuardResult;
   approvalId?: string;
+  decisionId?: string;
   agentTrustScore?: number;
   capabilityLevel?: number;
+}
+
+/** A fully-explainable record of one guard decision (Engine Room feed). */
+export interface DecisionRecord {
+  id: string;
+  timestamp: string;
+  agentId: string;
+  agentName: string;
+  action: GuardAction;
+  guard: GuardResult;
+  trustBefore: number;
+  trustAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+  approvalId?: string;
 }
 
 export interface AgentFile {
@@ -84,5 +100,6 @@ export interface GovernanceStore {
   ): Promise<{ approval: ApprovalItem; guard?: GuardResult } | undefined>;
   getBoardCase(agentId: string): BoardReviewCase | undefined;
   getMetrics(): MetricsSnapshot;
+  getDecisions(limit?: number): DecisionRecord[];
   reset(): void;
 }
