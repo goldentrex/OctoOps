@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "clean": "rm -rf .next",
-    "eval": "vite-node evals/run.ts"
+    "eval": "vite-node evals/run.ts",
+    "skill:zip": "cd qwenwork-skills && zip -r octoguard.zip octoguard"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

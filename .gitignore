@@ -43,3 +43,6 @@ next-env.d.ts
 
 # governance store (local dev)
 /.data/
+
+# skill packaging artifact
+qwenwork-skills/octoguard.zip
