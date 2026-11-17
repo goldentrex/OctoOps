@@ -19,7 +19,16 @@ Format: "Assumed X because Y". Per kickoff prompt: no blocking questions, pick d
 - Added `npm run clean` (`rm -rf .next`) per WINNING_PLAN audit finding #1.
 
 ## M2
-(pending)
+- Assumed the store serves one active preset (default `b2b-consultancy`, env `OCTOGUARD_PRESET`) because multi-tenant
+  preset switching server-side is not in the milestone spec; the portal falls back to local presets for other slugs.
+- Assumed display `agent.trustScore` stays the hand-tuned demo number adjusted by guard deltas, while the real Beta
+  model lives in capability records, because overwriting demo scores with cold-start Beta lower bounds (~2) would
+  visually break the existing roster. The dossier API exposes both.
+- Assumed seated agents earn L1 on first attempt at a core capability (plan: "L1 gate = hire"); unrelated systems stay L0.
+- Assumed founder EDIT of a held draft = human review performed, so it approves with the edited text and counts as an
+  approved clean draft (no re-guard loop). REJECT counts as a human-caught LOW correction (×2).
+- Assumed founder-hours-saved estimate = 0.1h per autonomous action (6 min), a demo metric, not a measurement.
+- Assumed read routes are public (the Hashmeta portal embed needs them); only writes require the bearer token.
 
 ## M3
 (pending)

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "eval": "vite-node evals/run.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

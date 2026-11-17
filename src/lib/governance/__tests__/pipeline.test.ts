@@ -69,6 +69,20 @@ describe("guard pipeline", () => {
     expect(res.verdict).toBe("HOLD");
   });
 
+  it("L2 agents hold medium-risk publishes for approval (L2 = approval required)", async () => {
+    const res = await runGuardPipeline(
+      {
+        agentId: "inko",
+        actionType: "PUBLISH_ARTICLE",
+        targetSystem: "HASHMETA_CMS",
+        payloadText: "A clean GEO pillar post.",
+      },
+      agent({ "cms.publish": 2 })
+    );
+    expect(res.verdict).toBe("HOLD");
+    expect(res.stage).toBe("G1_AUTONOMY");
+  });
+
   it("allows a clean L3 email with matching tenant", async () => {
     const res = await runGuardPipeline(
       email({ attachments: [{ name: "summary.pdf", tenant: "Hikari Automation Systems" }] }),
