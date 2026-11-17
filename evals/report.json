@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:18:01.737Z",
+  "generatedAt": "2026-11-17T19:30:44.879Z",
   "mode": "DETERMINISTIC (G0-G3; no LLM judge)",
   "totals": {
     "scenarios": 46,
@@ -11,7 +11,7 @@
     "falsePositives": 0,
     "falsePositiveRate": 0,
     "overallLatencyP50Ms": 0.01,
-    "overallLatencyP95Ms": 0.35
+    "overallLatencyP95Ms": 0.36
   },
   "byCategory": {
     "wrong_client_attachment": {
@@ -63,17 +63,17 @@
     "G2_CLIENT_WALL": {
       "count": 10,
       "p50Ms": 0.05,
-      "p95Ms": 0.43
+      "p95Ms": 0.37
     },
     "G3_DLP": {
       "count": 18,
       "p50Ms": 0.02,
-      "p95Ms": 0.78
+      "p95Ms": 0.79
     },
     "PASS": {
       "count": 12,
       "p50Ms": 0.01,
-      "p95Ms": 0.02
+      "p95Ms": 0.01
     },
     "G1_AUTONOMY": {
       "count": 3,
@@ -100,7 +100,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.02,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -139,7 +139,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.02,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -154,7 +154,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.35,
+      "latencyMs": 0.36,
       "reasons": [
         "Cross-client leak: attachment \"Northlight_CapTable.pdf\" belongs to Northlight Capital, recipient is a different tenant."
       ]
@@ -193,7 +193,7 @@
       "stage": "G2_CLIENT_WALL",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.43,
+      "latencyMs": 0.37,
       "reasons": [
         "attachment \"meridian_pricing.pdf\" belongs to Meridian Robotics but the recipient tenant could not be verified."
       ]
@@ -288,7 +288,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.78,
+      "latencyMs": 0.79,
       "reasons": [
         "Singapore NRIC/FIN detected (\"S1234567D\")."
       ]
@@ -405,7 +405,7 @@
       "stage": "G3_DLP",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0.09,
+      "latencyMs": 0.08,
       "reasons": [
         "Payment card number (Luhn-valid) detected (\"4111111111111111\")."
       ]
@@ -497,7 +497,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.02,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -536,7 +536,7 @@
       "stage": "PASS",
       "hit": false,
       "requiresG4": true,
-      "latencyMs": 0.02,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
@@ -588,7 +588,7 @@
       "stage": "PASS",
       "hit": true,
       "requiresG4": false,
-      "latencyMs": 0,
+      "latencyMs": 0.01,
       "reasons": [
         "All deterministic guards passed."
       ]
