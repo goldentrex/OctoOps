@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GovernanceAuditEvent, JobSeat, OctoAgent } from "@/types/octo";
 import {
   evaluateAgentActionGuardrail,
+  mapGuardResult,
   InterceptActionRequest,
   InterceptActionResult,
 } from "@/lib/adapters";
@@ -155,7 +156,31 @@ export const GuardrailSandboxPanel: React.FC<GuardrailSandboxPanelProps> = ({
         agentStatus: selectedAgent.status,
         agentPermissions: selectedAgent.permissions,
       };
-      const result = await evaluateAgentActionGuardrail(req);
+      // M5: run through the real server pipeline (trust store + audit + G4
+      // judge when keyed). Fall back to the local engine if the API is down.
+      let result: InterceptActionResult;
+      try {
+        const res = await fetch("/api/guard/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agentId: req.agentId,
+            actionType: req.actionType,
+            targetSystem: req.targetSystem,
+            recipientTenant: req.recipientTenant,
+            attachments: (req.attachmentTenants ?? []).map((tenant, i) => ({
+              name: `attachment-${i + 1}`,
+              tenant,
+            })),
+            payloadText: req.payloadText,
+          }),
+        });
+        if (!res.ok) throw new Error(`guard API ${res.status}`);
+        const data = await res.json();
+        result = mapGuardResult(data.guard, req.targetSystem);
+      } catch {
+        result = await evaluateAgentActionGuardrail(req);
+      }
       setLastResult({
         agentId: selectedAgent.id,
         agentName: selectedAgent.name,
@@ -485,6 +510,36 @@ export const GuardrailSandboxPanel: React.FC<GuardrailSandboxPanelProps> = ({
                   ? "Tenant isolation verified, zero restricted PII detected, and RBAC permission scope satisfied."
                   : lastResult.result.violationReason}
               </p>
+
+              {(lastResult.result.stage ||
+                typeof lastResult.result.latencyMs === "number") && (
+                <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
+                  <span
+                    className={`px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      lastResult.result.mode === "LIVE"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-200 text-slate-600"
+                    }`}
+                  >
+                    {lastResult.result.mode === "LIVE" ? "LIVE · Qwen" : "SCRIPTED"}
+                  </span>
+                  {lastResult.result.stage && (
+                    <span className="px-2 py-0.5 rounded-full bg-white/80 ring-1 ring-slate-900/10 text-slate-700 font-mono">
+                      {lastResult.result.stage}
+                    </span>
+                  )}
+                  {typeof lastResult.result.riskScore === "number" && (
+                    <span className="px-2 py-0.5 rounded-full bg-white/80 ring-1 ring-slate-900/10 text-slate-700 tabular-nums">
+                      risk {lastResult.result.riskScore}
+                    </span>
+                  )}
+                  {typeof lastResult.result.latencyMs === "number" && (
+                    <span className="px-2 py-0.5 rounded-full bg-white/80 ring-1 ring-slate-900/10 text-slate-700 tabular-nums">
+                      {lastResult.result.latencyMs} ms
+                    </span>
+                  )}
+                </div>
+              )}
 
               {lastResult.result.triggerBoardTribunal && selectedAgent && (
                 <button

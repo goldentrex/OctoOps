@@ -102,4 +102,47 @@ No public QwenWork MCP docs found via web search on 18 Nov.
 No-key smoke: board → SCRIPTED with full transcript; guard → deterministic verdicts, `mode: SCRIPTED`.
 
 **Left for the founder**: set `QWEN_API_KEY` in `.env.local`, then re-run `npm run eval:live` and record one LIVE board on camera.
-## M5. Minimal UI wiring — PENDING
+## M5. Minimal UI wiring — DONE
+
+**Built (smallest edits, no restyling)**:
+- `GuardrailSandboxPanel.tsx` — runs `POST /api/guard/evaluate` (falls back to the local engine if the API is down);
+  result banner now shows `LIVE · Qwen` / `SCRIPTED` badge, stage, risk score and latency.
+- `OctoBoardModal.tsx` — fetches `POST /api/board/deliberate` when opened; uses the server case (live or scripted)
+  with a `LIVE · Qwen` / `SCRIPTED` header badge; any failure keeps the local scripted case.
+- `GovernanceKpiStrip.tsx` (new) — leaks blocked, autonomy rate, guard p50, pending approvals from `GET /api/metrics`
+  (15s refresh); renders nothing when the API is unreachable. Inserted below the existing KPI strip in `page.tsx` (2-line edit).
+- `hashmeta_portal/page.tsx` — reads `GET /api/agents` first (cross-browser live sync), falls back to localStorage then presets.
+- Stopped here per kickoff: Founder's Desk UI and trust "why" panel are tomorrow.
+
+**Verified in a real browser (Playwright against `next start`)**:
+- Sandbox cross-tenant scenario → `INTERCEPTED by OctoGuard DLP · G2_CLIENT_WALL · risk 12 · 0.04 ms · SCRIPTED`.
+- Board modal → server case with `SCRIPTED` badge.
+- KPI strip updated live: leaks blocked 1, pending approvals 1.
+- Portal → `LIVE SYNCED` from the API, showing Barnaby's server-side write-up.
+- tsc ✅ lint ✅ (same 2 pre-existing warnings) · `npm test` ✅ 121+1 skipped · build ✅.
+
+---
+
+# Final summary (all milestones complete)
+
+## What works (no keys needed)
+- Full deterministic governance engine (G0-G3 + G6) with Beta trust, ladder, error budgets, hash-chained audit.
+- 11 API routes + stateless MCP server (4 tools) + installable QwenWork skill.
+- Red-team scorecard: 46 scenarios, 89.5% overall catch, 100% deterministic-scope, 0% false positives, p50 0.01 ms.
+- UI wired to the server with graceful fallbacks; everything runs scripted without any API key.
+
+## What is stubbed / needs keys
+- G4 Qwen judge + LIVE board: code complete and fallback-tested; **needs `QWEN_API_KEY`** to run live.
+- Believability weights are static (no judge-accuracy history yet).
+- Store is JSON-file based (`.data/`); a hosted DB implements `GovernanceStore` later.
+
+## Founder must do by hand
+1. Put `QWEN_API_KEY` (and optionally model ids) in `.env.local`; run `npm run eval:live`; record one LIVE board.
+2. Deploy publicly, set `OCTOGUARD_API_TOKEN`, follow `docs/QWENWORK_SETUP.md` (confirm MCP attachment at the workshop).
+3. Create 3 QwenWork agents (inko/squidney/barnaby), install `qwenwork-skills/octoguard.zip`, rehearse the intercept.
+4. Hashmeta CMS site + portal embed (plan section 5).
+
+## Three most valuable next tasks
+1. **Founder's Desk UI** — approval queue already exists at `GET/POST /api/approvals`; wire approve/edit/reject buttons.
+2. **Trust "why" panel** — `GET /api/agents/[id]` already returns `explanations` (evidence + credible interval); render on the dossier.
+3. **Live QwenWork intercept on camera** + Hashmeta site embed (60% of the rubric rides on these two).
