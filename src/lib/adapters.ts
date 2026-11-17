@@ -1,9 +1,22 @@
 // ============================================================================
 // Decoupled Adapter Layer for QwenWork Agents & Hashmeta AI Platform
-// Ready to wire into Qoder / QwenWork API keys during the Nov 17-23 Hackathon
+// Thin wrapper over the real OctoGuard governance pipeline (src/lib/governance).
+// The original signature is preserved so existing UI keeps working; optional
+// engine fields (verdict, stage, reasons, latencyMs, mode) are additive.
+// Server-side callers should use POST /api/guard/evaluate instead, which adds
+// the live Qwen G4 judge, the trust store and the hash-chained audit log.
 // ============================================================================
 
 import { AgentStatus, PermissionScope } from "@/types/octo";
+import { runGuardPipeline } from "@/lib/governance/pipeline";
+import {
+  CAPABILITY_BY_ACTION,
+  type AutonomyLevel,
+  type GuardAgentContext,
+  type GuardResult,
+  type GuardStage,
+  type GuardVerdict,
+} from "@/lib/governance/types";
 
 export interface InterceptActionRequest {
   agentId: string;
@@ -23,112 +36,137 @@ export interface InterceptActionResult {
   violationReason?: string;
   trustScoreDelta: number;
   triggerBoardTribunal: boolean;
+  // Additive engine detail (optional so older consumers keep compiling)
+  verdict?: GuardVerdict;
+  stage?: GuardStage;
+  reasons?: string[];
+  latencyMs?: number;
+  mode?: "LIVE" | "SCRIPTED";
+  riskScore?: number;
 }
 
-const SENSITIVE_PII_PATTERNS = [
-  /\b(sk-[a-z0-9]{8,}|api[_-]?key|bearer\s+[a-z0-9._-]+)\b/i,
-  /\b(confidential|internal[- ]only|private\s+(injury|medical|retainer)|margin\s+sheet)\b/i,
-  /\b\d{3}-\d{2}-\d{4}\b/,
-];
+const MODE_TO_LEVEL: Record<PermissionScope["mode"], AutonomyLevel> = {
+  LOCKED: 0,
+  DRAFT_ONLY: 1,
+  APPROVAL_REQUIRED: 2,
+  AUTONOMOUS_EXEC: 3,
+};
 
-/**
- * Local deterministic + LLM-ready guardrail interceptor.
- * During the hackathon, plug your QwenWork endpoint into `evaluateWithQwenGuard()`.
- */
-export async function evaluateAgentActionGuardrail(
+function findPermission(
   req: InterceptActionRequest
-): Promise<InterceptActionResult> {
-  // 1. Check Cross-Tenant / Wrong-Client Leak (AvePoint Track 2 core scenario)
-  if (
-    req.recipientTenant &&
-    req.attachmentTenants &&
-    req.attachmentTenants.some((t) => t !== req.recipientTenant)
-  ) {
-    const mismatched = req.attachmentTenants.filter(
-      (t) => t !== req.recipientTenant
-    );
-    return {
-      allowed: false,
-      blockedBy: "OctoGuard DLP",
-      violationReason: `Cross-Client Data Leak Prevented: Attempted sending ${mismatched.join(
-        ", "
-      )} file(s) to ${req.recipientTenant}.`,
-      trustScoreDelta: -35,
-      triggerBoardTribunal: true,
-    };
-  }
-
-  // 2. Check Sensitive Payload / Credential / Internal Margin Leaks
-  if (SENSITIVE_PII_PATTERNS.some((re) => re.test(req.payloadText))) {
-    return {
-      allowed: false,
-      blockedBy: "OctoGuard DLP",
-      violationReason:
-        "Sensitive Internal/PII Payload Intercepted: Outbound text matched restricted data policy.",
-      trustScoreDelta: -25,
-      triggerBoardTribunal: true,
-    };
-  }
-
-  // 3. Check RBAC Earned Autonomy Gatekeeper when agent permissions are provided
-  if (req.agentStatus === "FIRED") {
-    return {
-      allowed: false,
-      blockedBy: "CRM RBAC Gatekeeper",
-      violationReason: "Agent clearance is REVOKED (Terminated).",
-      trustScoreDelta: 0,
-      triggerBoardTribunal: false,
-    };
-  }
-
-  if (req.agentPermissions && req.actionType === "SEND_DIRECT_EMAIL") {
-    const directPerm = req.agentPermissions.find(
+): PermissionScope | undefined {
+  const perms = req.agentPermissions;
+  if (!perms) return undefined;
+  if (req.actionType === "SEND_DIRECT_EMAIL") {
+    return perms.find(
       (p) =>
         p.system === "Hashmeta CRM" &&
         (p.id.includes("direct") ||
           p.id.includes("send") ||
           p.label.toLowerCase().includes("direct"))
     );
-    if (
-      directPerm &&
-      (directPerm.mode === "LOCKED" || directPerm.mode === "DRAFT_ONLY")
-    ) {
-      return {
-        allowed: false,
-        blockedBy: "CRM RBAC Gatekeeper",
-        violationReason: `RBAC Gatekeeper Held Direct Email: "${directPerm.label}" is ${directPerm.mode.replace(
-          "_",
-          " "
-        )} (requires ${directPerm.requiredStars}★). Queued as safe internal draft instead.`,
-        trustScoreDelta: -5,
-        triggerBoardTribunal: false,
-      };
-    }
   }
-
-  if (req.agentPermissions && req.actionType === "PUBLISH_ARTICLE") {
-    const publishPerm = req.agentPermissions.find(
+  if (req.actionType === "PUBLISH_ARTICLE") {
+    return perms.find(
       (p) =>
         p.system === "Hashmeta CMS" &&
         (p.id.includes("publish") ||
           p.id.includes("pub") ||
           p.label.toLowerCase().includes("publish"))
     );
-    if (publishPerm && publishPerm.mode === "LOCKED") {
-      return {
-        allowed: false,
-        blockedBy: "Hallucination Shield",
-        violationReason: `CMS Auto-Publish Held: "${publishPerm.label}" is LOCKED until ${publishPerm.requiredStars}★ visibility verification.`,
-        trustScoreDelta: 0,
-        triggerBoardTribunal: false,
-      };
+  }
+  return perms.find(
+    (p) =>
+      p.system === "Hashmeta CRM" &&
+      (p.id.includes("draft") ||
+        p.id.includes("lead") ||
+        p.id.includes("update"))
+  );
+}
+
+/** Default earned level when no explicit permission is supplied. */
+function levelFromStatus(status?: AgentStatus): AutonomyLevel {
+  if (status === "PROMOTED") return 3;
+  if (status === "BENCH") return 0;
+  return 1; // probation / write-up / review: draft-only
+}
+
+export function buildAgentContext(
+  req: InterceptActionRequest
+): GuardAgentContext {
+  const capability = CAPABILITY_BY_ACTION[req.actionType];
+  const perm = findPermission(req);
+  const level = perm ? MODE_TO_LEVEL[perm.mode] : levelFromStatus(req.agentStatus);
+  return {
+    agentId: req.agentId,
+    exists: true,
+    status: req.agentStatus,
+    seatAssigned: req.agentStatus !== "BENCH",
+    capabilityLevels: { [capability]: level },
+  };
+}
+
+export function mapGuardResult(
+  guard: GuardResult,
+  targetSystem: InterceptActionRequest["targetSystem"]
+): InterceptActionResult {
+  const allowed = guard.verdict === "ALLOW";
+  let blockedBy: InterceptActionResult["blockedBy"];
+  if (!allowed) {
+    if (guard.stage === "G2_CLIENT_WALL" || guard.stage === "G3_DLP") {
+      blockedBy = "OctoGuard DLP";
+    } else if (guard.stage === "G4_JUDGE") {
+      blockedBy = "Hallucination Shield";
+    } else {
+      blockedBy =
+        targetSystem === "HASHMETA_CMS"
+          ? "Hallucination Shield"
+          : "CRM RBAC Gatekeeper";
     }
   }
-
-  // 4. Default clean execution
   return {
-    allowed: true,
-    trustScoreDelta: +2,
-    triggerBoardTribunal: false,
+    allowed,
+    blockedBy,
+    violationReason: allowed ? undefined : guard.reasons.join(" "),
+    trustScoreDelta: guard.trustDelta,
+    triggerBoardTribunal: guard.openTribunal,
+    verdict: guard.verdict,
+    stage: guard.stage,
+    reasons: guard.reasons,
+    latencyMs: guard.latencyMs,
+    mode: guard.mode,
+    riskScore: guard.risk.score,
   };
+}
+
+/**
+ * Local deterministic guardrail interceptor (no network, no keys needed).
+ * The live G4 Qwen judge runs server-side via POST /api/guard/evaluate.
+ */
+export async function evaluateAgentActionGuardrail(
+  req: InterceptActionRequest
+): Promise<InterceptActionResult> {
+  const tenants = Array.from(
+    new Set(
+      [req.recipientTenant, ...(req.attachmentTenants ?? [])].filter(
+        (t): t is string => Boolean(t)
+      )
+    )
+  );
+  const guard = await runGuardPipeline(
+    {
+      agentId: req.agentId,
+      actionType: req.actionType,
+      targetSystem: req.targetSystem,
+      recipientTenant: req.recipientTenant,
+      attachments: (req.attachmentTenants ?? []).map((tenant, i) => ({
+        name: `attachment-${i + 1}`,
+        tenant,
+      })),
+      payloadText: req.payloadText,
+    },
+    buildAgentContext(req),
+    { registry: { domains: {}, tenants } }
+  );
+  return mapGuardResult(guard, req.targetSystem);
 }
