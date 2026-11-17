@@ -6,6 +6,7 @@ import confetti from "canvas-confetti";
 import {
   getBoardReviewCase,
   buildPermissionsForSeat,
+  isBoardMemberAgent,
 } from "@/data/mockOctoData";
 import {
   BUSINESS_PRESETS,
@@ -217,7 +218,7 @@ export default function OctoOpsApp() {
 
   const seatedAgents = seats
     .map((s) => candidates.find((c) => c.id === s.occupantId))
-    .filter((a): a is OctoAgent => Boolean(a));
+    .filter((a): a is OctoAgent => a !== undefined && !isBoardMemberAgent(a));
 
   const showToast = (
     message: string,
@@ -451,11 +452,18 @@ export default function OctoOpsApp() {
     );
   };
 
-  // Hire, Re-hire, or Transfer ANY Octopus into ANY Job Seat
+  // Hire, Re-hire, or Transfer ANY non-Board Octopus into ANY Job Seat
   const handleAssignCandidateToSeat = (candidateId: string, seatId: string) => {
     const targetSeat = seats.find((s) => s.id === seatId);
     const incoming = candidates.find((c) => c.id === candidateId);
     if (!targetSeat || !incoming) return;
+    if (isBoardMemberAgent(incoming)) {
+      showToast(
+        `${incoming.name} sits on the Octo-Board and cannot be assigned to an operational team seat.`,
+        "warning"
+      );
+      return;
+    }
 
     const displacedId =
       targetSeat.occupantId && targetSeat.occupantId !== candidateId
@@ -817,6 +825,17 @@ export default function OctoOpsApp() {
     const trimmedTitle = customSeatTitle.trim() || tpl.defaultTitle;
     const trimmedKpi = customSeatKpi.trim() || tpl.defaultKpiSummary;
 
+    const selectedStartingAgent = customStartingAgentId
+      ? candidates.find((c) => c.id === customStartingAgentId)
+      : undefined;
+    if (selectedStartingAgent && isBoardMemberAgent(selectedStartingAgent)) {
+      showToast(
+        `${selectedStartingAgent.name} sits on the Octo-Board and cannot be assigned to an operational team seat.`,
+        "warning"
+      );
+      return;
+    }
+
     const newSeat: JobSeat = {
       id: newSeatId,
       title: trimmedTitle,
@@ -1045,6 +1064,7 @@ export default function OctoOpsApp() {
       : seats.filter((s) => s.department === departmentFilter);
 
   const filteredBenchCandidates = candidates.filter((c) => {
+    if (isBoardMemberAgent(c)) return false;
     if (benchFilter === "bench") return c.status === "BENCH";
     if (benchFilter === "seated") return Boolean(c.assignedSeatId);
     if (benchFilter === "fired") return c.status === "FIRED";
@@ -1202,18 +1222,35 @@ export default function OctoOpsApp() {
               <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
                 <Building2 className="w-4 h-4" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-slate-900">
-                    {activePreset.name}
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-200/80">
-                    {activePreset.tagline}
-                  </span>
-                </div>
-                <p className="text-[11px] font-medium text-slate-500 truncate">
-                  {activePreset.description}
-                </p>
+              <div className="min-w-0 overflow-hidden">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={activePreset.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.2, ease: EASE_OUT },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: -4,
+                      transition: { duration: 0.14, ease: EASE_OUT },
+                    }}
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-900">
+                        {activePreset.name}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-200/80">
+                        {activePreset.tagline}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-500 truncate">
+                      {activePreset.description}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
 
@@ -1225,15 +1262,22 @@ export default function OctoOpsApp() {
                     key={preset.id}
                     type="button"
                     onClick={() => handleSelectPreset(preset.id)}
-                    className={`pressable px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
+                    className={`relative pressable px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors duration-150 ${
                       isSelected
-                        ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/[0.06]"
+                        ? "text-slate-900"
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    <span>{preset.categoryLabel}</span>
+                    {isSelected && (
+                      <motion.span
+                        layoutId="preset-active-pill"
+                        transition={{ type: "spring", stiffness: 450, damping: 34 }}
+                        className="absolute inset-0 rounded-lg bg-white shadow-sm ring-1 ring-slate-900/[0.06]"
+                      />
+                    )}
+                    <span className="relative z-10">{preset.categoryLabel}</span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full tabular-nums ${
+                      className={`relative z-10 text-[10px] px-1.5 py-0.5 rounded-full tabular-nums transition-colors ${
                         isSelected
                           ? "bg-emerald-100 text-emerald-800 font-bold"
                           : "bg-slate-200/80 text-slate-500"
@@ -1324,14 +1368,23 @@ export default function OctoOpsApp() {
                       key={item.id}
                       type="button"
                       onClick={() => setActiveTab(item.id)}
-                      className={`pressable px-3.5 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${
+                      className={`relative pressable px-3.5 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-colors duration-150 ${
                         isActive
-                          ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/[0.06]"
+                          ? "text-slate-900"
                           : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
-                      {item.icon}
-                      {item.label}
+                      {isActive && (
+                        <motion.span
+                          layoutId="primary-nav-pill"
+                          transition={{ type: "spring", stiffness: 460, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-white shadow-sm ring-1 ring-slate-900/[0.06]"
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center gap-1.5">
+                        {item.icon}
+                        {item.label}
+                      </span>
                     </button>
                   );
                 })}
@@ -1352,401 +1405,561 @@ export default function OctoOpsApp() {
 
             {/* Main Content Stage */}
             <main className="p-5 sm:p-6">
-              {activeTab === "roster" && (
-                <div className="space-y-6">
-                  {/* Department Filter & Add Department Arm Bar */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setDepartmentFilter("all")}
-                        className={`pressable px-3 py-1.5 rounded-full text-xs font-semibold tabular-nums ${
-                          departmentFilter === "all"
-                            ? "bg-slate-900 text-white shadow-sm"
-                            : "bg-white text-slate-600 ring-1 ring-slate-900/[0.08] hover:text-slate-900"
-                        }`}
-                      >
-                        All Arms ({seats.length})
-                      </button>
-                      {activeDepartments.map((dept) => {
-                        const count = seats.filter(
-                          (s) => s.department === dept
-                        ).length;
-                        const active = departmentFilter === dept;
-                        return (
-                          <button
-                            key={dept}
-                            type="button"
-                            onClick={() => setDepartmentFilter(dept)}
-                            className={`pressable px-3 py-1.5 rounded-full text-xs font-semibold tabular-nums ${
-                              active
-                                ? "bg-slate-900 text-white shadow-sm"
-                                : "bg-white text-slate-600 ring-1 ring-slate-900/[0.08] hover:text-slate-900"
-                            }`}
-                          >
-                            {dept} ({count})
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleOpenAddSeatModal}
-                      className="pressable self-start md:self-auto px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5 shrink-0 tabular-nums"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Department Seat ({seats.length}/{MAX_COMPANY_ARMS})
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    {visibleSeats.map((seat) => {
-                      const occupant =
-                        candidates.find((c) => c.id === seat.occupantId) ??
-                        null;
-                      return (
-                        <AgentStaffCard
-                          key={seat.id}
-                          seat={seat}
-                          agent={occupant}
-                          onInspectFile={(a) => setSelectedDossierId(a.id)}
-                          onSummonBoard={(a) => setActiveBoardAgentId(a.id)}
-                          onHireForSeat={(s) => setHireModalSeat(s)}
-                          onToggleBreak={handleToggleBreak}
-                          onRemoveSeat={
-                            seats.length > 1 ? handleRemoveVacantSeat : undefined
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-
-                  {/* 20-Octopus Talent Bench */}
-                  <section className="bg-white rounded-[24px] p-5 ring-1 ring-slate-900/[0.06] shadow-surface">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80">
-                          Talent Registry
-                        </span>
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
-                          OctoOps Talent Bench
-                        </h3>
-                        <p className="text-xs font-medium text-slate-500">
-                          Select any octopus to assign to a seat or inspect its
-                          HR dossier.
-                        </p>
-                      </div>
-
-                      {/* Bench Filter Pills */}
-                      <div className="flex flex-wrap items-center gap-1 bg-slate-100/90 p-1 rounded-xl self-start lg:self-auto">
-                        {(
-                          [
-                            { id: "all", label: `All (${candidates.length})` },
-                            {
-                              id: "bench",
-                              label: `Bench (${
-                                candidates.filter((c) => c.status === "BENCH")
-                                  .length
-                              })`,
-                            },
-                            {
-                              id: "seated",
-                              label: `In Seat (${
-                                candidates.filter((c) =>
-                                  Boolean(c.assignedSeatId)
-                                ).length
-                              })`,
-                            },
-                            {
-                              id: "fired",
-                              label: `Fired (${
-                                candidates.filter((c) => c.status === "FIRED")
-                                  .length
-                              })`,
-                            },
-                          ] as const
-                        ).map((tab) => (
-                          <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => setBenchFilter(tab.id)}
-                            className={`pressable px-3 py-1 rounded-lg text-xs font-semibold tabular-nums ${
-                              benchFilter === tab.id
-                                ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/[0.06]"
-                                : "text-slate-600 hover:text-slate-900"
-                            }`}
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                      {filteredBenchCandidates.map((candidate) => {
-                        const currentSeat = seats.find(
-                          (s) => s.id === candidate.assignedSeatId
-                        );
-                        return (
-                          <button
-                            key={candidate.id}
-                            type="button"
-                            onClick={() => setAssignCandidateModal(candidate)}
-                            className={`card-hover pressable group rounded-2xl p-2.5 ring-1 flex flex-col items-center text-center relative ${
-                              candidate.status === "FIRED"
-                                ? "bg-rose-50/50 ring-rose-200 hover:ring-rose-300"
-                                : currentSeat
-                                ? "bg-emerald-50/50 ring-emerald-200 hover:ring-emerald-300"
-                                : "bg-slate-50/80 hover:bg-white ring-slate-900/[0.06] hover:shadow-surface"
-                            }`}
-                          >
-                            <span
-                              className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mb-2 tabular-nums ${
-                                candidate.status === "FIRED"
-                                  ? "bg-rose-600 text-white"
-                                  : currentSeat
-                                  ? "bg-emerald-600 text-white"
-                                  : "bg-sky-100 text-sky-800"
+              <AnimatePresence mode="wait" initial={false}>
+                {activeTab === "roster" && (
+                  <motion.div
+                    key="tab-roster"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.24, ease: EASE_OUT },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: -8,
+                      transition: { duration: 0.16, ease: EASE_OUT },
+                    }}
+                    className="space-y-6"
+                  >
+                    {/* Department Filter & Add Department Arm Bar */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDepartmentFilter("all")}
+                          className={`relative pressable px-3 py-1.5 rounded-full text-xs font-semibold tabular-nums transition-colors duration-150 ${
+                            departmentFilter === "all"
+                              ? "text-white"
+                              : "bg-white text-slate-600 ring-1 ring-slate-900/[0.08] hover:text-slate-900"
+                          }`}
+                        >
+                          {departmentFilter === "all" && (
+                            <motion.span
+                              layoutId="dept-filter-pill"
+                              transition={{ type: "spring", stiffness: 460, damping: 34 }}
+                              className="absolute inset-0 rounded-full bg-slate-900 shadow-sm"
+                            />
+                          )}
+                          <span className="relative z-10">
+                            All Arms ({seats.length})
+                          </span>
+                        </button>
+                        {activeDepartments.map((dept) => {
+                          const count = seats.filter(
+                            (s) => s.department === dept
+                          ).length;
+                          const active = departmentFilter === dept;
+                          return (
+                            <button
+                              key={dept}
+                              type="button"
+                              onClick={() => setDepartmentFilter(dept)}
+                              className={`relative pressable px-3 py-1.5 rounded-full text-xs font-semibold tabular-nums transition-colors duration-150 ${
+                                active
+                                  ? "text-white"
+                                  : "bg-white text-slate-600 ring-1 ring-slate-900/[0.08] hover:text-slate-900"
                               }`}
                             >
-                              {candidate.status === "FIRED"
-                                ? "Fired"
-                                : currentSeat
-                                ? "In Seat"
-                                : `${candidate.stars}★ Bench`}
-                            </span>
+                              {active && (
+                                <motion.span
+                                  layoutId="dept-filter-pill"
+                                  transition={{ type: "spring", stiffness: 460, damping: 34 }}
+                                  className="absolute inset-0 rounded-full bg-slate-900 shadow-sm"
+                                />
+                              )}
+                              <span className="relative z-10">
+                                {dept} ({count})
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                            <div className="w-full h-24 rounded-xl overflow-hidden mb-2">
-                              <OctoPuppet
-                                color={candidate.color}
-                                accessory={candidate.accessory}
-                                mood={candidate.mood}
-                                size="sm"
+                      <button
+                        type="button"
+                        onClick={handleOpenAddSeatModal}
+                        className="pressable self-start md:self-auto px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5 shrink-0 tabular-nums"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Department Seat ({seats.length}/{MAX_COMPANY_ARMS})
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        {visibleSeats.map((seat) => {
+                          const occupant =
+                            candidates.find((c) => c.id === seat.occupantId) ??
+                            null;
+                          return (
+                            <motion.div
+                              key={seat.id}
+                              layout
+                              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                              animate={{
+                                opacity: 1,
+                                scale: 1,
+                                y: 0,
+                                transition: { duration: 0.24, ease: EASE_OUT },
+                              }}
+                              exit={{
+                                opacity: 0,
+                                scale: 0.95,
+                                transition: { duration: 0.16, ease: EASE_OUT },
+                              }}
+                            >
+                              <AgentStaffCard
+                                seat={seat}
+                                agent={occupant}
+                                onInspectFile={(a) => setSelectedDossierId(a.id)}
+                                onSummonBoard={(a) => setActiveBoardAgentId(a.id)}
+                                onHireForSeat={(s) => setHireModalSeat(s)}
+                                onToggleBreak={handleToggleBreak}
+                                onRemoveSeat={
+                                  seats.length > 1
+                                    ? handleRemoveVacantSeat
+                                    : undefined
+                                }
                               />
-                            </div>
-                            <div className="font-bold text-xs text-slate-900 group-hover:text-sky-700 transition-colors">
-                              {candidate.name}
-                            </div>
-                            <div className="text-[11px] font-medium text-slate-500 line-clamp-1">
-                              {currentSeat
-                                ? currentSeat.title
-                                : candidate.traits[0]}
-                            </div>
-                          </button>
-                        );
-                      })}
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
                     </div>
-                  </section>
-                </div>
-              )}
 
-              {activeTab === "boardroom" && (
-                <div className="bg-white rounded-[24px] p-6 ring-1 ring-slate-900/[0.06] shadow-surface space-y-6">
-                  <div className="border-b border-slate-200/80 pb-4">
-                    <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                      Autonomous Governance Review
-                    </span>
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-2">
-                      The Octo-Board Executive Tribunal
-                    </h2>
-                    <p className="text-xs sm:text-sm font-normal text-slate-500 mt-1 max-w-3xl leading-relaxed">
-                      Before any QwenWork agent earns higher autonomy or faces
-                      termination for a security breach, Cassandra (CISO),
-                      Reginald (CFO), and Pulse (Growth VP) cross-examine the
-                      telemetry.
-                    </p>
-                  </div>
+                    {/* Operational Talent Bench (Excludes Octo-Board Judges) */}
+                    <section className="bg-white rounded-[24px] p-5 ring-1 ring-slate-900/[0.06] shadow-surface">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80">
+                            Talent Registry
+                          </span>
+                          <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
+                            OctoOps Talent Bench
+                          </h3>
+                          <p className="text-xs font-medium text-slate-500">
+                            Select any octopus to assign to a seat or inspect its
+                            HR dossier.
+                          </p>
+                        </div>
 
-                  {seatedAgents.length === 0 ? (
-                    <div className="p-8 text-center rounded-2xl bg-slate-50 ring-1 ring-slate-200/80 text-sm font-semibold text-slate-500">
-                      All seats are currently vacant. Assign an octopus from the
-                      Staff Roster to convene a Board review.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                      {seatedAgents.map((agent) => {
-                        const seat = seats.find(
-                          (s) => s.id === agent.assignedSeatId
-                        );
-                        const reviewCase = getBoardReviewCase(
-                          agent,
-                          seat,
-                          boardCases
-                        );
-                        return (
-                          <div
-                            key={agent.id}
-                            className="p-4 rounded-2xl bg-slate-50/70 ring-1 ring-slate-900/[0.06] flex flex-col justify-between"
-                          >
-                            <div>
-                              <div className="flex items-center gap-3.5">
-                                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                        {/* Bench Filter Pills */}
+                        <div className="flex flex-wrap items-center gap-1 bg-slate-100/90 p-1 rounded-xl self-start lg:self-auto">
+                          {(
+                            [
+                              { id: "all", label: `All (${candidates.length})` },
+                              {
+                                id: "bench",
+                                label: `Bench (${
+                                  candidates.filter((c) => c.status === "BENCH")
+                                    .length
+                                })`,
+                              },
+                              {
+                                id: "seated",
+                                label: `In Seat (${
+                                  candidates.filter((c) =>
+                                    Boolean(c.assignedSeatId)
+                                  ).length
+                                })`,
+                              },
+                              {
+                                id: "fired",
+                                label: `Fired (${
+                                  candidates.filter((c) => c.status === "FIRED")
+                                    .length
+                                })`,
+                              },
+                            ] as const
+                          ).map((tab) => {
+                            const isSelected = benchFilter === tab.id;
+                            return (
+                              <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setBenchFilter(tab.id)}
+                                className={`relative pressable px-3 py-1 rounded-lg text-xs font-semibold tabular-nums transition-colors duration-150 ${
+                                  isSelected
+                                    ? "text-slate-900"
+                                    : "text-slate-600 hover:text-slate-900"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <motion.span
+                                    layoutId="bench-filter-pill"
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 460,
+                                      damping: 34,
+                                    }}
+                                    className="absolute inset-0 rounded-lg bg-white shadow-sm ring-1 ring-slate-900/[0.06]"
+                                  />
+                                )}
+                                <span className="relative z-10">{tab.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                        <AnimatePresence mode="popLayout" initial={false}>
+                          {filteredBenchCandidates.map((candidate) => {
+                            const currentSeat = seats.find(
+                              (s) => s.id === candidate.assignedSeatId
+                            );
+                            return (
+                              <motion.button
+                                key={candidate.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.94 }}
+                                animate={{
+                                  opacity: 1,
+                                  scale: 1,
+                                  transition: { duration: 0.2, ease: EASE_OUT },
+                                }}
+                                exit={{
+                                  opacity: 0,
+                                  scale: 0.94,
+                                  transition: { duration: 0.14, ease: EASE_OUT },
+                                }}
+                                type="button"
+                                onClick={() =>
+                                  setAssignCandidateModal(candidate)
+                                }
+                                className={`card-hover pressable group rounded-2xl p-2.5 ring-1 flex flex-col items-center text-center relative transition-colors duration-200 ${
+                                  candidate.status === "FIRED"
+                                    ? "bg-rose-50/50 ring-rose-200 hover:ring-rose-300"
+                                    : currentSeat
+                                    ? "bg-emerald-50/50 ring-emerald-200 hover:ring-emerald-300"
+                                    : "bg-slate-50/80 hover:bg-white ring-slate-900/[0.06] hover:shadow-surface"
+                                }`}
+                              >
+                                <span
+                                  className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mb-2 tabular-nums ${
+                                    candidate.status === "FIRED"
+                                      ? "bg-rose-600 text-white"
+                                      : currentSeat
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-sky-100 text-sky-800"
+                                  }`}
+                                >
+                                  {candidate.status === "FIRED"
+                                    ? "Fired"
+                                    : currentSeat
+                                    ? "In Seat"
+                                    : `${candidate.stars}★ Bench`}
+                                </span>
+
+                                <div className="w-full h-24 rounded-xl overflow-hidden mb-2">
                                   <OctoPuppet
-                                    color={agent.color}
-                                    accessory={agent.accessory}
-                                    mood={agent.mood}
+                                    color={candidate.color}
+                                    accessory={candidate.accessory}
+                                    mood={candidate.mood}
                                     size="sm"
                                   />
                                 </div>
-                                <div className="min-w-0">
-                                  <h3 className="font-display text-xl font-bold text-slate-900 truncate">
-                                    {agent.name}
-                                  </h3>
-                                  <p className="text-xs font-medium text-slate-500 truncate">
-                                    {agent.role}
-                                  </p>
-                                  <span className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white ring-1 ring-slate-900/[0.08] text-slate-700">
-                                    {agent.stampText}
-                                  </span>
+                                <div className="font-bold text-xs text-slate-900 group-hover:text-sky-700 transition-colors">
+                                  {candidate.name}
                                 </div>
+                                <div className="text-[11px] font-medium text-slate-500 line-clamp-1">
+                                  {currentSeat
+                                    ? currentSeat.title
+                                    : candidate.traits[0]}
+                                </div>
+                              </motion.button>
+                            );
+                          })}
+                        </AnimatePresence>
+                      </div>
+                    </section>
+                  </motion.div>
+                )}
+
+                {activeTab === "boardroom" && (
+                  <motion.div
+                    key="tab-boardroom"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.24, ease: EASE_OUT },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: -8,
+                      transition: { duration: 0.16, ease: EASE_OUT },
+                    }}
+                    className="bg-white rounded-[24px] p-6 ring-1 ring-slate-900/[0.06] shadow-surface space-y-6"
+                  >
+                    <div className="border-b border-slate-200/80 pb-4">
+                      <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Autonomous Governance Review
+                      </span>
+                      <h2 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-2">
+                        The Octo-Board Executive Tribunal
+                      </h2>
+                      <p className="text-xs sm:text-sm font-normal text-slate-500 mt-1 max-w-3xl leading-relaxed">
+                        Before any QwenWork agent earns higher autonomy or faces
+                        termination for a security breach, Cassandra (CISO),
+                        Reginald (CFO), and Pulse (Growth VP) cross-examine the
+                        telemetry.
+                      </p>
+                    </div>
+
+                    {seatedAgents.length === 0 ? (
+                      <div className="p-8 text-center rounded-2xl bg-slate-50 ring-1 ring-slate-200/80 text-sm font-semibold text-slate-500">
+                        All seats are currently vacant. Assign an octopus from
+                        the Staff Roster to convene a Board review.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {seatedAgents.map((agent) => {
+                          const seat = seats.find(
+                            (s) => s.id === agent.assignedSeatId
+                          );
+                          const reviewCase = getBoardReviewCase(
+                            agent,
+                            seat,
+                            boardCases
+                          );
+                          return (
+                            <div
+                              key={agent.id}
+                              className="p-4 rounded-2xl bg-slate-50/70 ring-1 ring-slate-900/[0.06] flex flex-col justify-between"
+                            >
+                              <div>
+                                <div className="flex items-center gap-3.5">
+                                  <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                                    <OctoPuppet
+                                      color={agent.color}
+                                      accessory={agent.accessory}
+                                      mood={agent.mood}
+                                      size="sm"
+                                    />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h3 className="font-display text-xl font-bold text-slate-900 truncate">
+                                      {agent.name}
+                                    </h3>
+                                    <p className="text-xs font-medium text-slate-500 truncate">
+                                      {agent.role}
+                                    </p>
+                                    <span className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white ring-1 ring-slate-900/[0.08] text-slate-700">
+                                      {agent.stampText}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <p className="mt-3 text-xs font-medium text-slate-600 bg-white p-3 rounded-xl ring-1 ring-slate-900/[0.05] leading-relaxed">
+                                  {reviewCase.headline}
+                                </p>
                               </div>
 
-                              <p className="mt-3 text-xs font-medium text-slate-600 bg-white p-3 rounded-xl ring-1 ring-slate-900/[0.05] leading-relaxed">
-                                {reviewCase.headline}
-                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setActiveBoardAgentId(agent.id)}
+                                className="pressable mt-4 w-full py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs shadow-sm flex items-center justify-center gap-1.5"
+                              >
+                                <Gavel className="w-4 h-4" />
+                                Launch Board Hearing
+                              </button>
                             </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
 
-                            <button
-                              type="button"
-                              onClick={() => setActiveBoardAgentId(agent.id)}
-                              className="pressable mt-4 w-full py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs shadow-sm flex items-center justify-center gap-1.5"
-                            >
-                              <Gavel className="w-4 h-4" />
-                              Launch Board Hearing
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+                {activeTab === "hashmeta_portal" && (
+                  <motion.div
+                    key="tab-hashmeta-portal"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.24, ease: EASE_OUT },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: -8,
+                      transition: { duration: 0.16, ease: EASE_OUT },
+                    }}
+                  >
+                    <HashmetaTrustPortal
+                      agents={seatedAgents}
+                      seats={seats}
+                      presetId={activePresetId}
+                      companyName={activePreset.name}
+                      portalEndpointSlug={activePreset.portalEndpointSlug}
+                      clientOptions={activePreset.clientPortalAccounts}
+                      onSimulateLeadAssign={handleSimulateTrustPortalLead}
+                    />
+                  </motion.div>
+                )}
 
-              {activeTab === "hashmeta_portal" && (
-                <HashmetaTrustPortal
-                  agents={seatedAgents}
-                  seats={seats}
-                  presetId={activePresetId}
-                  companyName={activePreset.name}
-                  portalEndpointSlug={activePreset.portalEndpointSlug}
-                  clientOptions={activePreset.clientPortalAccounts}
-                  onSimulateLeadAssign={handleSimulateTrustPortalLead}
-                />
-              )}
-
-              {activeTab === "sandbox" && (
-                <GuardrailSandboxPanel
-                  agents={seatedAgents}
-                  seats={seats}
-                  clientOptions={activePreset.clientPortalAccounts}
-                  auditLog={auditLog}
-                  onRecordSandboxResult={handleRecordSandboxResult}
-                  onSummonBoard={(a) => setActiveBoardAgentId(a.id)}
-                />
-              )}
+                {activeTab === "sandbox" && (
+                  <motion.div
+                    key="tab-sandbox"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.24, ease: EASE_OUT },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: -8,
+                      transition: { duration: 0.16, ease: EASE_OUT },
+                    }}
+                  >
+                    <GuardrailSandboxPanel
+                      agents={seatedAgents}
+                      seats={seats}
+                      clientOptions={activePreset.clientPortalAccounts}
+                      auditLog={auditLog}
+                      onRecordSandboxResult={handleRecordSandboxResult}
+                      onSummonBoard={(a) => setActiveBoardAgentId(a.id)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </main>
           </div>
         </div>
 
         {/* ==================== DEMO DIRECTOR DOCK ==================== */}
         <div className="fixed bottom-4 inset-x-0 z-30 flex justify-center px-3 pointer-events-none">
-          {demoDockMinimized ? (
-            <button
-              type="button"
-              onClick={() => setDemoDockMinimized(false)}
-              className="pointer-events-auto pressable bg-slate-900/95 backdrop-blur-xl text-white px-4 py-2 rounded-full ring-1 ring-white/10 shadow-elevated flex items-center gap-2 text-xs font-bold"
-            >
-              <Clapperboard className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-amber-400">Demo Director</span>
-              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-          ) : (
-            <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-xl text-white px-3.5 py-2 rounded-full ring-1 ring-white/10 shadow-elevated flex flex-wrap items-center justify-center gap-2">
-              <div className="flex items-center gap-1.5 pl-1 pr-2.5 border-r border-white/15">
+          <AnimatePresence mode="wait" initial={false}>
+            {demoDockMinimized ? (
+              <motion.button
+                key="dock-minimized"
+                type="button"
+                initial={{ opacity: 0, y: 12, scale: 0.94 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                  transition: { duration: 0.22, ease: EASE_OUT },
+                }}
+                exit={{
+                  opacity: 0,
+                  y: 8,
+                  scale: 0.95,
+                  transition: { duration: 0.14, ease: EASE_OUT },
+                }}
+                onClick={() => setDemoDockMinimized(false)}
+                className="pointer-events-auto pressable bg-slate-900/95 backdrop-blur-xl text-white px-4 py-2 rounded-full ring-1 ring-white/10 shadow-elevated flex items-center gap-2 text-xs font-bold"
+              >
                 <Clapperboard className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[11px] font-bold text-amber-400 tracking-wide">
-                  Demo Director
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={triggerWrongClientWriteUpDemo}
-                className="pressable px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs flex items-center gap-1.5"
-              >
-                <ShieldAlert className="w-3.5 h-3.5" />
-                {activePreset.demoConfig.leakButtonLabel}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const leakOccupantId =
-                    seats.find(
-                      (s) => s.id === activePreset.demoConfig.leakTargetSeatId
-                    )?.occupantId ?? seatedAgents[0]?.id;
-                  if (leakOccupantId) {
-                    setActiveBoardAgentId(leakOccupantId);
-                  } else {
-                    showToast("Assign an octopus to a seat first.", "warning");
-                  }
+                <span className="text-amber-400">Demo Director</span>
+                <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+              </motion.button>
+            ) : (
+              <motion.div
+                key="dock-expanded"
+                initial={{ opacity: 0, y: 14, scale: 0.96 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                  transition: { duration: 0.24, ease: EASE_OUT },
                 }}
-                className="pressable px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs flex items-center gap-1.5"
-              >
-                <Gavel className="w-3.5 h-3.5" />
-                2. Board Tribunal
-              </button>
-
-              <button
-                type="button"
-                onClick={triggerPromoteInkoDemo}
-                className="pressable px-3 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                {activePreset.demoConfig.promotionButtonLabel}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  clearPersistedOctoState();
-                  const snap = buildPresetSnapshot(activePresetId);
-                  setSeats(snap.seats);
-                  setCandidates(snap.candidates);
-                  setBoardCases(snap.boardCases);
-                  setAuditLog(
-                    buildInitialAuditLog(
-                      snap.preset.name,
-                      snap.seats,
-                      snap.candidates
-                    )
-                  );
-                  setDepartmentFilter("all");
-                  setSelectedDossierId(null);
-                  setActiveBoardAgentId(null);
-                  setHireModalSeat(null);
-                  setAssignCandidateModal(null);
-                  setAddSeatModalOpen(false);
-                  showToast(`${snap.preset.name} demo state reset.`, "success");
+                exit={{
+                  opacity: 0,
+                  y: 10,
+                  scale: 0.96,
+                  transition: { duration: 0.16, ease: EASE_OUT },
                 }}
-                className="pressable px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-200 font-medium text-xs flex items-center gap-1"
+                className="pointer-events-auto bg-slate-900/95 backdrop-blur-xl text-white px-3.5 py-2 rounded-full ring-1 ring-white/10 shadow-elevated flex flex-wrap items-center justify-center gap-2"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset
-              </button>
+                <div className="flex items-center gap-1.5 pl-1 pr-2.5 border-r border-white/15">
+                  <Clapperboard className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[11px] font-bold text-amber-400 tracking-wide">
+                    Demo Director
+                  </span>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setDemoDockMinimized(true)}
-                aria-label="Minimize demo dock"
-                title="Hide Demo Director for clean recordings"
-                className="pressable p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-300"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  onClick={triggerWrongClientWriteUpDemo}
+                  className="pressable px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs flex items-center gap-1.5"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  {activePreset.demoConfig.leakButtonLabel}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const leakOccupantId =
+                      seats.find(
+                        (s) => s.id === activePreset.demoConfig.leakTargetSeatId
+                      )?.occupantId ?? seatedAgents[0]?.id;
+                    if (leakOccupantId) {
+                      setActiveBoardAgentId(leakOccupantId);
+                    } else {
+                      showToast("Assign an octopus to a seat first.", "warning");
+                    }
+                  }}
+                  className="pressable px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs flex items-center gap-1.5"
+                >
+                  <Gavel className="w-3.5 h-3.5" />
+                  2. Board Tribunal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={triggerPromoteInkoDemo}
+                  className="pressable px-3 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {activePreset.demoConfig.promotionButtonLabel}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearPersistedOctoState();
+                    const snap = buildPresetSnapshot(activePresetId);
+                    setSeats(snap.seats);
+                    setCandidates(snap.candidates);
+                    setBoardCases(snap.boardCases);
+                    setAuditLog(
+                      buildInitialAuditLog(
+                        snap.preset.name,
+                        snap.seats,
+                        snap.candidates
+                      )
+                    );
+                    setDepartmentFilter("all");
+                    setSelectedDossierId(null);
+                    setActiveBoardAgentId(null);
+                    setHireModalSeat(null);
+                    setAssignCandidateModal(null);
+                    setAddSeatModalOpen(false);
+                    showToast(`${snap.preset.name} demo state reset.`, "success");
+                  }}
+                  className="pressable px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-200 font-medium text-xs flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDemoDockMinimized(true)}
+                  aria-label="Minimize demo dock"
+                  title="Hide Demo Director for clean recordings"
+                  className="pressable p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-300"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ==================== HIRE / SWAP FOR SEAT MODAL ==================== */}
@@ -1799,7 +2012,9 @@ export default function OctoOpsApp() {
                 </div>
 
                 <div className="p-5 max-h-[70vh] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {candidates.map((c) => {
+                  {candidates
+                    .filter((c) => !isBoardMemberAgent(c))
+                    .map((c) => {
                     const isCurrentOccupant =
                       c.assignedSeatId === hireModalSeat.id;
                     const otherSeat = seats.find(
@@ -2124,7 +2339,7 @@ export default function OctoOpsApp() {
                       >
                         <option value="">Leave Vacant (Hire Later)</option>
                         {candidates
-                          .filter((c) => !c.assignedSeatId)
+                          .filter((c) => !c.assignedSeatId && !isBoardMemberAgent(c))
                           .map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.name} ({c.stars}★ • {c.trustScore}% Trust)

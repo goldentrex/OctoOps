@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { JobSeat, OctoAgent } from "@/types/octo";
 import { OctoPuppet } from "./OctoPuppet";
 import {
@@ -57,143 +57,188 @@ export const AgentStaffCard: React.FC<AgentStaffCardProps> = ({
   onToggleBreak,
   onRemoveSeat,
 }) => {
-  if (!agent) {
-    return (
-      <div className="relative bg-white/85 rounded-[28px] p-5 border border-dashed border-slate-300 shadow-surface flex flex-col justify-between min-h-[460px]">
-        <div>
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 truncate">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-              {seat.department}
-            </span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-200">
-                Vacant Seat
-              </span>
-              {onRemoveSeat && (
-                <button
-                  type="button"
-                  onClick={() => onRemoveSeat(seat)}
-                  title={`Remove vacant ${seat.title} seat`}
-                  aria-label={`Remove ${seat.title} seat`}
-                  className="pressable w-6 h-6 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-700 flex items-center justify-center"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="h-56 rounded-[22px] bg-slate-50 ring-1 ring-slate-900/[0.05] flex flex-col items-center justify-center text-center p-5">
-            <div className="w-14 h-14 rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/[0.06] flex items-center justify-center text-sky-600 mb-3">
-              <UserPlus className="w-6 h-6" />
-            </div>
-            <h3 className="font-display text-xl font-bold text-slate-900">
-              {seat.title}
-            </h3>
-            <p className="text-xs font-medium text-slate-500 mt-1 max-w-xs leading-relaxed">
-              {seat.kpiSummary}
-            </p>
-          </div>
-
-          <div className="mt-4 space-y-1.5">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Seat Permissions Awaiting Assignment
-            </div>
-            {seat.defaultPermissions.slice(0, 2).map((p) => (
-              <div
-                key={p.id}
-                className="text-xs font-medium text-slate-600 bg-slate-50/80 rounded-xl px-3 py-2 ring-1 ring-slate-900/[0.05] flex items-center justify-between"
-              >
-                <span className="truncate pr-2">{p.label}</span>
-                <span className="text-[11px] font-semibold text-slate-400 shrink-0 tabular-nums">
-                  {p.requiredStars}★ min
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onHireForSeat(seat)}
-          className="pressable mt-4 w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs shadow-sm flex items-center justify-center gap-2"
-        >
-          <UserPlus className="w-4 h-4" />
-          Assign Octopus to {seat.title}
-        </button>
-      </div>
-    );
-  }
-
-  const stampStyles =
-    agent.stampVariant === "blue"
+  const stampStyles = agent
+    ? agent.stampVariant === "blue"
       ? "ring-2 ring-blue-600/80 text-blue-700 bg-white/95 shadow-[0_8px_20px_rgba(37,99,235,0.14)]"
       : agent.stampVariant === "green"
       ? "ring-2 ring-emerald-600/80 text-emerald-700 bg-white/95 shadow-[0_8px_20px_rgba(22,163,74,0.14)]"
-      : "ring-2 ring-rose-600/85 text-rose-700 bg-white/95 shadow-[0_8px_20px_rgba(225,29,72,0.16)]";
+      : "ring-2 ring-rose-600/85 text-rose-700 bg-white/95 shadow-[0_8px_20px_rgba(225,29,72,0.16)]"
+    : "";
 
   return (
-    <div className="card-hover relative bg-white rounded-[28px] p-4 ring-1 ring-slate-900/[0.06] shadow-surface hover:shadow-elevated flex flex-col justify-between">
-      {/* Top Department Pill, Swap Button & Live Trust Score */}
-      <div className="flex items-center justify-between gap-2 mb-3 px-0.5">
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100/90 text-slate-700 truncate">
-          <span
-            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-              agent.status === "WRITE_UP"
-                ? "bg-rose-500 animate-pulse"
-                : "bg-emerald-500"
-            }`}
-          />
-          {seat.department}
-        </span>
+    <AnimatePresence mode="wait" initial={false}>
+      {!agent ? (
+        <motion.div
+          key="vacant"
+          initial={{ opacity: 0, scale: 0.97, y: 6 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: { duration: 0.24, ease: EASE_OUT },
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.97,
+            y: -4,
+            transition: { duration: 0.16, ease: EASE_OUT },
+          }}
+          className="relative bg-white/85 rounded-[28px] p-5 border border-dashed border-slate-300 shadow-surface flex flex-col justify-between min-h-[460px]"
+        >
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                {seat.department}
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-200">
+                  Vacant Seat
+                </span>
+                {onRemoveSeat && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveSeat(seat)}
+                    title={`Remove vacant ${seat.title} seat`}
+                    aria-label={`Remove ${seat.title} seat`}
+                    className="pressable w-6 h-6 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-700 flex items-center justify-center"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+            <div className="h-56 rounded-[22px] bg-slate-50 ring-1 ring-slate-900/[0.05] flex flex-col items-center justify-center text-center p-5">
+              <div className="w-14 h-14 rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/[0.06] flex items-center justify-center text-sky-600 mb-3">
+                <UserPlus className="w-6 h-6" />
+              </div>
+              <h3 className="font-display text-xl font-bold text-slate-900">
+                {seat.title}
+              </h3>
+              <p className="text-xs font-medium text-slate-500 mt-1 max-w-xs leading-relaxed">
+                {seat.kpiSummary}
+              </p>
+            </div>
+
+            <div className="mt-4 space-y-1.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Seat Permissions Awaiting Assignment
+              </div>
+              {seat.defaultPermissions.slice(0, 2).map((p) => (
+                <div
+                  key={p.id}
+                  className="text-xs font-medium text-slate-600 bg-slate-50/80 rounded-xl px-3 py-2 ring-1 ring-slate-900/[0.05] flex items-center justify-between"
+                >
+                  <span className="truncate pr-2">{p.label}</span>
+                  <span className="text-[11px] font-semibold text-slate-400 shrink-0 tabular-nums">
+                    {p.requiredStars}★ min
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => onHireForSeat(seat)}
-            title={`Swap octopus in ${seat.title}`}
-            className="pressable text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/70 px-2.5 py-1 rounded-full flex items-center gap-1"
+            className="pressable mt-4 w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs shadow-sm flex items-center justify-center gap-2"
           >
-            <ArrowLeftRight className="w-3 h-3" />
-            Swap
+            <UserPlus className="w-4 h-4" />
+            Assign Octopus to {seat.title}
           </button>
-          <span className="text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full ring-1 ring-slate-900/[0.06] tabular-nums">
-            Trust{" "}
-            <strong className="font-bold text-slate-900">
-              {agent.trustScore}%
-            </strong>
-          </span>
-        </div>
-      </div>
-
-      {/* Octopus Stage + Tactile Rubber Stamp */}
-      <div className="relative w-full">
-        <OctoPuppet
-          color={agent.color}
-          accessory={agent.accessory}
-          prop={seat.prop}
-          mood={agent.mood}
-          size="lg"
-        />
-
-        <motion.div
-          key={agent.stampText + agent.status}
-          initial={{ scale: 1.25, opacity: 0, rotate: -10 }}
-          animate={{ scale: 1, opacity: 1, rotate: -5 }}
-          transition={{ type: "spring", duration: 0.35, bounce: 0.2 }}
-          className={`absolute -bottom-3.5 right-3 z-20 px-3 py-1.5 rounded-xl text-center leading-tight select-none backdrop-blur-md ${stampStyles}`}
-        >
-          <div className="text-xs uppercase tracking-wider font-extrabold">
-            {agent.stampText}
-          </div>
-          {agent.stampSubtext && (
-            <div className="text-[10px] font-semibold opacity-85 mt-0.5">
-              {agent.stampSubtext}
-            </div>
-          )}
         </motion.div>
-      </div>
+      ) : (
+        <motion.div
+          key={agent.id}
+          initial={{ opacity: 0, scale: 0.97, y: 6 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: { duration: 0.24, ease: EASE_OUT },
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.97,
+            y: -4,
+            transition: { duration: 0.16, ease: EASE_OUT },
+          }}
+          className={`card-hover relative bg-white rounded-[28px] p-4 ring-1 shadow-surface hover:shadow-elevated flex flex-col justify-between transition-shadow duration-300 ${
+            agent.status === "WRITE_UP"
+              ? "ring-rose-300/90 shadow-[0_8px_28px_rgba(244,63,94,0.10)]"
+              : agent.status === "PROMOTED"
+              ? "ring-emerald-300/80 shadow-[0_8px_28px_rgba(16,185,129,0.09)]"
+              : "ring-slate-900/[0.06]"
+          }`}
+        >
+          {/* Top Department Pill, Swap Button & Live Trust Score */}
+          <div className="flex items-center justify-between gap-2 mb-3 px-0.5">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100/90 text-slate-700 truncate">
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-300 ${
+                  agent.status === "WRITE_UP"
+                    ? "bg-rose-500 animate-pulse"
+                    : "bg-emerald-500"
+                }`}
+              />
+              {seat.department}
+            </span>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => onHireForSeat(seat)}
+                title={`Swap octopus in ${seat.title}`}
+                className="pressable text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/70 px-2.5 py-1 rounded-full flex items-center gap-1"
+              >
+                <ArrowLeftRight className="w-3 h-3" />
+                Swap
+              </button>
+              <span className="text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full ring-1 ring-slate-900/[0.06] tabular-nums">
+                Trust{" "}
+                <strong className="font-bold text-slate-900">
+                  {agent.trustScore}%
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Octopus Stage + Tactile Rubber Stamp */}
+          <div className="relative w-full">
+            <OctoPuppet
+              color={agent.color}
+              accessory={agent.accessory}
+              prop={seat.prop}
+              mood={agent.mood}
+              size="lg"
+            />
+
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={agent.stampText + agent.status}
+                initial={{ scale: 1.28, opacity: 0, rotate: -11, y: -4 }}
+                animate={{ scale: 1, opacity: 1, rotate: -5, y: 0 }}
+                exit={{
+                  scale: 0.9,
+                  opacity: 0,
+                  rotate: -2,
+                  transition: { duration: 0.16, ease: EASE_OUT },
+                }}
+                transition={{ type: "spring", duration: 0.36, bounce: 0.22 }}
+                className={`absolute -bottom-3.5 right-3 z-20 px-3 py-1.5 rounded-xl text-center leading-tight select-none backdrop-blur-md ${stampStyles}`}
+              >
+                <div className="text-xs uppercase tracking-wider font-extrabold">
+                  {agent.stampText}
+                </div>
+                {agent.stampSubtext && (
+                  <div className="text-[10px] font-semibold opacity-85 mt-0.5">
+                    {agent.stampSubtext}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
       {/* Name, Role & Star Rating */}
       <div className="mt-5 px-0.5 flex items-end justify-between gap-2">
@@ -299,52 +344,72 @@ export const AgentStaffCard: React.FC<AgentStaffCardProps> = ({
         </button>
       </div>
 
-      {/* Live Activity Strip */}
-      <div className="mt-3.5 bg-slate-50 rounded-xl px-3 py-2 ring-1 ring-slate-900/[0.05] text-xs font-medium text-slate-600 truncate">
-        <span className="font-semibold text-slate-800">Now: </span>
-        {agent.currentTask}
-      </div>
+          {/* Live Activity Strip */}
+          <div className="mt-3.5 bg-slate-50 rounded-xl px-3 py-2 ring-1 ring-slate-900/[0.05] text-xs font-medium text-slate-600 overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={agent.currentTask}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  transition: { duration: 0.2, ease: EASE_OUT },
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -4,
+                  transition: { duration: 0.14, ease: EASE_OUT },
+                }}
+                className="truncate"
+              >
+                <span className="font-semibold text-slate-800">Now: </span>
+                {agent.currentTask}
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-      {/* Action Buttons */}
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => onInspectFile(agent)}
-          className="pressable flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-800 font-semibold text-xs"
-        >
-          <FileSearch className="w-3.5 h-3.5 text-slate-500" />
-          HR Dossier
-        </button>
+          {/* Action Buttons */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onInspectFile(agent)}
+              className="pressable flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-800 font-semibold text-xs"
+            >
+              <FileSearch className="w-3.5 h-3.5 text-slate-500" />
+              HR Dossier
+            </button>
 
-        <button
-          type="button"
-          onClick={() => onSummonBoard(agent)}
-          className={`pressable flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-semibold text-xs shadow-sm ${
-            agent.status === "WRITE_UP"
-              ? "bg-rose-600 hover:bg-rose-700 text-white"
-              : agent.status === "PROBATION"
-              ? "bg-amber-400 hover:bg-amber-500 text-slate-950"
-              : "bg-emerald-600 hover:bg-emerald-700 text-white"
-          }`}
-        >
-          {agent.status === "WRITE_UP" ? (
-            <>
-              <ShieldAlert className="w-3.5 h-3.5" />
-              Board Tribunal
-            </>
-          ) : agent.status === "PROBATION" ? (
-            <>
-              <Gavel className="w-3.5 h-3.5" />
-              Board Review
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-3.5 h-3.5" />
-              Board Audit
-            </>
-          )}
-        </button>
-      </div>
-    </div>
+            <button
+              type="button"
+              onClick={() => onSummonBoard(agent)}
+              className={`pressable flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-semibold text-xs shadow-sm transition-colors duration-200 ${
+                agent.status === "WRITE_UP"
+                  ? "bg-rose-600 hover:bg-rose-700 text-white"
+                  : agent.status === "PROBATION"
+                  ? "bg-amber-400 hover:bg-amber-500 text-slate-950"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+            >
+              {agent.status === "WRITE_UP" ? (
+                <>
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  Board Tribunal
+                </>
+              ) : agent.status === "PROBATION" ? (
+                <>
+                  <Gavel className="w-3.5 h-3.5" />
+                  Board Review
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Board Audit
+                </>
+              )}
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

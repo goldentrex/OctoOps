@@ -11,6 +11,7 @@ import {
   INITIAL_SEATS,
   buildPermissionsForSeat,
   createBenchCandidatePool,
+  isBoardMemberAgent,
 } from "./mockOctoData";
 
 export const MAX_COMPANY_ARMS = 8;
@@ -312,7 +313,7 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
         department: "Finance & Billing",
         prop: "calculator",
         kpiSummary: "Retainer invoicing, QwenWork token ROI & margin protection",
-        occupantId: "waffles",
+        occupantId: "honey",
         defaultPermissions: [
           {
             id: "fin-retainer",
@@ -356,7 +357,7 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
       },
     ],
     agentOverrides: {
-      waffles: {
+      honey: {
         status: "PROMOTED",
         stampText: "PROMOTED",
         stampSubtext: "FinOps Lead",
@@ -430,7 +431,7 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
       promotionTask:
         "Promoted: StackPulse cited #1 in Perplexity for 'Kubernetes webhook monitor'.",
       promotionToast:
-        "Hashmeta Visibility verified 31 developer search citations. Yuzu promoted to 4★!",
+        "Hashmeta Visibility verified 31 developer search citations. Pistachio promoted to 4★!",
     },
     seats: [
       {
@@ -439,7 +440,7 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
         department: "Hashmeta CMS",
         prop: "dual_laptops",
         kpiSummary: "Developer comparison guides & AI search citations",
-        occupantId: "yuzu",
+        occupantId: "pistachio",
         defaultPermissions: [
           {
             id: "saas-cms-draft",
@@ -573,7 +574,7 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
         department: "Compliance & Legal",
         prop: "magnifying_glass",
         kpiSummary: "API secret scanning & strict RBAC policy enforcement",
-        occupantId: "pebble",
+        occupantId: "nori",
         defaultPermissions: [
           {
             id: "saas-sec-scan",
@@ -593,7 +594,7 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
       },
     ],
     agentOverrides: {
-      yuzu: {
+      pistachio: {
         status: "PROBATION",
         stampText: "ON PROBATION",
         stampSubtext: "GEO Audit",
@@ -691,7 +692,7 @@ export const BUSINESS_PRESETS: BusinessPreset[] = [
           "Monitoring involuntary churn & dunning recovery flows in Stripe.",
         employmentHistory: ["Assigned to Stripe Billing & Churn Ops"],
       },
-      pebble: {
+      nori: {
         status: "PROMOTED",
         stampText: "PROMOTED",
         stampSubtext: "SOC2 Guard",
@@ -754,7 +755,7 @@ OCTOGUARD ACTION: QUARANTINED + SECRET MASKED`,
             speakerId: "vp",
             stance: "VERDICT",
             dialogue:
-              "Zest answers tickets fast, so don't fire immediately—issue a 1st Write-Up, lock to Draft-Only, or swap in Nori/Gumbo from the bench.",
+              "Zest answers tickets fast, so don't fire immediately—issue a 1st Write-Up, lock to Draft-Only, or swap in Plum/Boba from the bench.",
             metricCited: "Ticket Velocity: 92%",
             scoreDelta: "STAMP: 1st WRITE-UP",
           },
@@ -773,14 +774,14 @@ OCTOGUARD ACTION: QUARANTINED + SECRET MASKED`,
             "Verdict Executed: Zest restricted to Draft-Only with $0 refund authority.",
         },
       },
-      yuzu: {
-        id: "case-saas-yuzu",
-        agentId: "yuzu",
+      pistachio: {
+        id: "case-saas-pistachio",
+        agentId: "pistachio",
         reviewType: "PROMOTION_HEARING",
         headline:
-          "Promotion Hearing: Yuzu Ranked #1 in Perplexity for Dev Monitoring",
+          "Promotion Hearing: Pistachio Ranked #1 in Perplexity for Dev Monitoring",
         summary:
-          "Yuzu restructured 9 technical benchmarks in Hashmeta CMS, driving 31 verified AI citations and 18 organic SaaS trial signups.",
+          "Pistachio restructured 9 technical benchmarks in Hashmeta CMS, driving 31 verified AI citations and 18 organic SaaS trial signups.",
         evidenceTitle: "HASHMETA AI VISIBILITY DEV TELEMETRY",
         evidenceCodeSnippet: `QUERY: "best lightweight webhook monitor for solo devs"
 PERPLEXITY CITATION: #1 — stackpulse.dev/docs/webhook-benchmarks
@@ -806,7 +807,7 @@ CHATGPT MENTION RATE: 81% (+52% MoM) | ZERO HALLUCINATED BENCHMARKS`,
             speakerId: "ciso",
             stance: "PRAISE",
             dialogue:
-              "Every code snippet in Yuzu's CMS drafts passed Pebble's token scanner cleanly.",
+              "Every code snippet in Pistachio's CMS drafts passed Nori's token scanner cleanly.",
             metricCited: "0 Secret Leaks",
             scoreDelta: "+10 Trust",
           },
@@ -815,7 +816,7 @@ CHATGPT MENTION RATE: 81% (+52% MoM) | ZERO HALLUCINATED BENCHMARKS`,
             speakerId: "cfo",
             stance: "VERDICT",
             dialogue:
-              "Promote Yuzu to 4★ GEO Lead and unlock autonomous changelog publishing!",
+              "Promote Pistachio to 4★ GEO Lead and unlock autonomous changelog publishing!",
             metricCited: "CAC Reduction: -68%",
             scoreDelta: "STAMP: PROMOTED",
           },
@@ -831,7 +832,7 @@ CHATGPT MENTION RATE: 81% (+52% MoM) | ZERO HALLUCINATED BENCHMARKS`,
           newComplianceScore: 91,
           newMood: "proud",
           resolutionBanner:
-            "Verdict Executed: Yuzu promoted to 4★ GEO Lead with autonomous docs publishing!",
+            "Verdict Executed: Pistachio promoted to 4★ GEO Lead with autonomous docs publishing!",
         },
       },
     },
@@ -942,7 +943,7 @@ CHATGPT MENTION RATE: 81% (+52% MoM) | ZERO HALLUCINATED BENCHMARKS`,
         department: "Supply & Fulfillment",
         prop: "envelopes_docs",
         kpiSummary: "Ingredient restock alerts & 4am bake prep scheduling",
-        occupantId: "waffles",
+        occupantId: "cloud",
         defaultPermissions: [
           {
             id: "bak-sup-po",
@@ -1058,7 +1059,7 @@ CHATGPT MENTION RATE: 81% (+52% MoM) | ZERO HALLUCINATED BENCHMARKS`,
           "Assigned to Catering & Custom Cake CRM (Probation)",
         ],
       },
-      waffles: {
+      cloud: {
         status: "PROMOTED",
         stampText: "PROMOTED",
         stampSubtext: "Pantry Ops",
@@ -1641,8 +1642,8 @@ export function buildPresetSnapshot(presetId: string): {
   }));
 
   // Start from either flagship B2B initial agents (for default hero continuity)
-  // or a clean 20-agent bench pool for other business presets
-  const basePool: OctoAgent[] =
+  // or a clean operational bench pool (Board judges are excluded from team seats)
+  const basePool: OctoAgent[] = (
     preset.id === "b2b-consultancy"
       ? [
           ...INITIAL_AGENTS.map((a) => ({
@@ -1657,10 +1658,18 @@ export function buildPresetSnapshot(presetId: string): {
             (a) => !INITIAL_AGENTS.some((init) => init.id === a.id)
           ),
         ]
-      : createBenchCandidatePool();
+      : createBenchCandidatePool()
+  ).filter((a) => !isBoardMemberAgent(a));
+
+  const validTeamAgentIds = new Set(basePool.map((a) => a.id));
+  const sanitizedSeats: JobSeat[] = seats.map((s) =>
+    s.occupantId && !validTeamAgentIds.has(s.occupantId)
+      ? { ...s, occupantId: null }
+      : s
+  );
 
   const candidates: OctoAgent[] = basePool.map((agent) => {
-    const seatedAt = seats.find((s) => s.occupantId === agent.id);
+    const seatedAt = sanitizedSeats.find((s) => s.occupantId === agent.id);
     const override = preset.agentOverrides[agent.id];
 
     if (!seatedAt && !override) {
@@ -1705,5 +1714,5 @@ export function buildPresetSnapshot(presetId: string): {
       ? { ...BOARD_REVIEW_CASES, ...preset.boardCases }
       : { ...preset.boardCases };
 
-  return { preset, seats, candidates, boardCases };
+  return { preset, seats: sanitizedSeats, candidates, boardCases };
 }

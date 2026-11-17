@@ -1,5 +1,6 @@
 import {
   OctoAgent,
+  OctoAccessory,
   JobSeat,
   PermissionScope,
   BoardMember,
@@ -377,6 +378,29 @@ export const OCTO_BOARD_MEMBERS: BoardMember[] = [
   },
 ];
 
+export const BOARD_MEMBER_ACCESSORIES = new Set<OctoAccessory>(
+  OCTO_BOARD_MEMBERS.map((member) => member.accessory)
+);
+
+export const BOARD_RESERVED_AGENT_IDS = new Set<string>([
+  "waffles",
+  "pebble",
+  "yuzu",
+  ...OCTO_BOARD_MEMBERS.map((member) => member.id),
+]);
+
+/**
+ * Board members cannot simultaneously serve on the operational team or talent bench.
+ */
+export function isBoardMemberAgent(
+  agent: Pick<OctoAgent, "id" | "accessory">
+): boolean {
+  return (
+    BOARD_RESERVED_AGENT_IDS.has(agent.id) ||
+    BOARD_MEMBER_ACCESSORIES.has(agent.accessory)
+  );
+}
+
 export const BOARD_REVIEW_CASES: Record<string, BoardReviewCase> = {
   squidney: {
     id: "case-squidney-tribunal",
@@ -747,19 +771,6 @@ const BENCH_SEEDS: BenchSeed[] = [
     complianceScore: 90,
   },
   {
-    id: "waffles",
-    name: "Waffles",
-    accessory: "cfo_monocle",
-    color: "amber",
-    qwenModelId: "qwen-max-finops-v2",
-    traits: ["Token ROI Audit", "Invoice Reconciliation", "Cost Discipline"],
-    bio: "FinOps & token-budget specialist. Tracks unit economics across QwenWork pipelines and Hashmeta campaigns.",
-    stars: 4,
-    trustScore: 91,
-    workOutputScore: 84,
-    complianceScore: 93,
-  },
-  {
     id: "nori",
     name: "Nori",
     accessory: "nori_beanie",
@@ -797,32 +808,6 @@ const BENCH_SEEDS: BenchSeed[] = [
     trustScore: 86,
     workOutputScore: 82,
     complianceScore: 89,
-  },
-  {
-    id: "pebble",
-    name: "Pebble",
-    accessory: "ciso_detective",
-    color: "slate",
-    qwenModelId: "qwen-guard-forensic-v2",
-    traits: ["Forensic Audit", "PII Redaction", "Policy Enforcement"],
-    bio: "Investigative governance specialist built for high-stakes compliance desks.",
-    stars: 4,
-    trustScore: 95,
-    workOutputScore: 77,
-    complianceScore: 98,
-  },
-  {
-    id: "yuzu",
-    name: "Yuzu",
-    accessory: "vp_shades",
-    color: "amber",
-    qwenModelId: "qwen-max-visibility-v2",
-    traits: ["AI Citation Growth", "Perplexity Ranking", "GEO Strategy"],
-    bio: "Visibility-obsessed growth strategist focused on winning ChatGPT, Gemini, and Perplexity citations.",
-    stars: 4,
-    trustScore: 85,
-    workOutputScore: 92,
-    complianceScore: 82,
   },
   {
     id: "truffle",
@@ -957,8 +942,8 @@ const BENCH_SEEDS: BenchSeed[] = [
 ];
 
 export const INITIAL_CANDIDATES: OctoAgent[] = [
-  ...INITIAL_AGENTS,
-  ...BENCH_SEEDS.map(
+  ...INITIAL_AGENTS.filter((agent) => !isBoardMemberAgent(agent)),
+  ...BENCH_SEEDS.filter((seed) => !isBoardMemberAgent(seed)).map(
     (seed): OctoAgent => ({
       id: seed.id,
       name: seed.name,
@@ -1001,7 +986,8 @@ export const INITIAL_CANDIDATES: OctoAgent[] = [
 ];
 
 export function createBenchCandidatePool(): OctoAgent[] {
-  return INITIAL_CANDIDATES.map((agent) => ({
+  return INITIAL_CANDIDATES.filter((agent) => !isBoardMemberAgent(agent)).map(
+    (agent) => ({
     ...agent,
     role: "Available on Talent Bench",
     department: "QwenWork Ops",

@@ -10,6 +10,254 @@ fs.mkdirSync(VIDEO_DIR, { recursive: true });
 // Priority Queue: Unique, non-duplicated videos for every character state & custom job prop!
 const VIDEO_QUEUE = [
   {
+    id: "boba-working",
+    inputFile: "16x9-scene-boba-working.jpg",
+    outputFile: "boba-working.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute shaggy matcha-mint plush octopus with tortoiseshell glasses and yellow bow types cheerfully on the silver mini laptop with its chubby mint tentacles next to the stacked mail envelopes and INTERN desk badge. Occasionally it blinks with smooth, plain matcha-mint plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "nori-working",
+    inputFile: "16x9-scene-nori-working.jpg",
+    outputFile: "nori-working.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute periwinkle fluffy plush octopus in a mustard knit beanie and dark square glasses gently sweeps the glowing translucent teal magnifying security shield back and forth over the sealed white envelope on the desk while nodding carefully. Occasionally it blinks with smooth, plain periwinkle plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "mochi-working",
+    inputFile: "16x9-scene-mochi-working.jpg",
+    outputFile: "mochi-working.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute strawberry-cream fluffy plush octopus with pink bow and pastel headphones types cheerfully on the silver mini laptop with its chubby tentacles while swaying slightly beside the pink podcast microphone. Occasionally it blinks with smooth, plain strawberry-pink plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "gumbo-working",
+    inputFile: "16x9-scene-gumbo-working.jpg",
+    outputFile: "gumbo-working.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute coral-tangerine fluffy plush octopus in a beige fedora and sky-blue tie taps the buttons of the mint-green 3D desk calculator with one chubby coral tentacle while checking the spiral financial ledger beside the gold coins. Occasionally it blinks with smooth, plain coral-tangerine plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "truffle-working",
+    inputFile: "16x9-scene-truffle-working.jpg",
+    outputFile: "truffle-working.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute cocoa-taupe professor plush octopus with white side-hair, gold glasses, and plaid scarf holds the brass magnifying glass over the confidential dossiers, nodding thoughtfully while inspecting the documents. Occasionally it blinks with smooth, plain cocoa-taupe plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "zest-working",
+    inputFile: "16x9-scene-zest-working.jpg",
+    outputFile: "zest-working.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute aqua-turquoise fluffy plush octopus with a mohawk tuft, headset, and yellow tie bobs energetically next to the teal-and-pink megaphone and points happily toward the rising green 3D growth bar chart. Occasionally it blinks with smooth, plain aqua-turquoise plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "plum-working",
+    inputFile: "16x9-scene-plum-working.jpg",
+    outputFile: "plum-working.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. Preserve the exact chunky round fluffy sherpa-fleece plush toy texture, short chubby compact tentacles, cat-eye glasses, and pearl necklace of the royal-plum violet plush octopus from the reference image — do NOT elongate or flatten the tentacles. It taps its short chubby front tentacle thoughtfully beside the HR clipboard, fountain pen, and sealed envelopes. Keep the eyes simple round white plush toy spheres with solid black pupils, blinking occasionally with smooth plain plum-violet plush eyelids. Smooth 3D plush animation.",
+  },
+  {
+    id: "zest-panicked",
+    inputFile: "16x9-octo-12-zest.jpg",
+    outputFile: "zest-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute aqua-turquoise fluffy plush octopus with a mohawk tuft, headset, and yellow tie widens its eyes in panicked shock, raising two chubby aqua tentacles nervously toward its cheeks and trembling in alarm. Occasionally it blinks with smooth, plain aqua-turquoise plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "plum-panicked",
+    inputFile: "16x9-octo-14-plum.jpg",
+    outputFile: "plum-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. Preserve the exact chunky round fluffy sherpa-fleece plush toy texture, short chubby compact tentacles, cat-eye glasses, and pearl necklace of the royal-plum violet plush octopus from the reference image — do NOT elongate or flatten the tentacles. It widens its eyes in surprised shock and raises two short chubby front tentacles nervously while trembling slightly. Keep the eyes simple round white plush toy spheres with solid black pupils, blinking occasionally with smooth plain plum-violet plush eyelids. Smooth 3D plush animation.",
+  },
+  {
+    id: "boba-panicked",
+    inputFile: "16x9-octo-04-boba.jpg",
+    outputFile: "boba-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute shaggy matcha-mint plush octopus with tortoiseshell glasses and yellow bow widens its eyes in panicked shock, raising two chubby mint tentacles to its cheeks and trembling nervously with a worried open expression. Occasionally it blinks with smooth, plain matcha-mint plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "nori-panicked",
+    inputFile: "16x9-octo-06-nori.jpg",
+    outputFile: "nori-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute periwinkle-blue fluffy plush octopus in a mustard knit beanie and square glasses widens its eyes in panicked shock, raising both front periwinkle tentacles in alarm and trembling nervously behind its glasses. Occasionally it blinks with smooth, plain periwinkle plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "mochi-panicked",
+    inputFile: "16x9-octo-07-mochi.jpg",
+    outputFile: "mochi-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute strawberry-cream fluffy plush octopus with pink headphones widens its eyes in panicked shock, raising two chubby strawberry-pink tentacles in alarm and trembling nervously. Occasionally it blinks with smooth, plain strawberry-pink plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "truffle-panicked",
+    inputFile: "16x9-octo-11-truffle.jpg",
+    outputFile: "truffle-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute cocoa-taupe fluffy plush octopus professor with white eyebrows, gold glasses, and scarf widens its eyes in panicked shock, raising its front tentacles nervously while trembling in alarm. Occasionally it blinks with smooth, plain cocoa-taupe plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "gumbo-panicked",
+    inputFile: "16x9-octo-08-gumbo.jpg",
+    outputFile: "gumbo-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute coral-tangerine fluffy plush octopus in a beige fedora and blue tie widens its eyes in panicked shock, raising two chubby coral tentacles to hold its trembling fedora in alarm. Occasionally it blinks with smooth, plain coral-tangerine plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "plum-promoted",
+    inputFile: "16x9-octo-14-plum.jpg",
+    outputFile: "plum-promoted.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. Preserve the exact chunky round fluffy sherpa-fleece plush toy texture, short chubby compact tentacles, cat-eye glasses, and pearl necklace of the royal-plum violet plush octopus from the reference image — do NOT elongate or flatten the tentacles. It bounces gently up and down with a happy smile and waves two short chubby front tentacles. Keep the eyes simple round white plush toy spheres with solid black pupils, blinking occasionally with smooth plain plum-violet plush eyelids. Smooth 3D plush animation.",
+  },
+  {
+    id: "truffle-sleeping",
+    inputFile: "16x9-octo-11-truffle.jpg",
+    outputFile: "truffle-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute cocoa-taupe fluffy plush octopus professor with white eyebrows, gold glasses, and scarf closes its smooth plain cocoa-taupe plush eyelids into a peaceful horizontal line, rests softly on its folded front tentacles, and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
+    id: "truffle-promoted",
+    inputFile: "16x9-octo-11-truffle.jpg",
+    outputFile: "truffle-promoted.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute cocoa-taupe fluffy plush octopus professor with white eyebrows, gold glasses, and scarf bounces cheerfully in victory celebration, raising its front tentacles proudly with a warm beaming smile. Occasionally it blinks with smooth, plain cocoa-taupe plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "gumbo-sleeping",
+    inputFile: "16x9-octo-08-gumbo.jpg",
+    outputFile: "gumbo-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute coral-tangerine fluffy plush octopus in a beige fedora and blue tie closes its smooth plain coral-tangerine plush eyelids into a peaceful horizontal line, tilts its fedora slightly forward, and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
+    id: "zest-sleeping",
+    inputFile: "16x9-octo-12-zest.jpg",
+    outputFile: "zest-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute aqua-turquoise fluffy plush octopus with a mohawk tuft, headset, and yellow tie closes its smooth plain aqua-turquoise plush eyelids into a peaceful horizontal line, rests softly on its folded front tentacles, and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
+    id: "gumbo-promoted",
+    inputFile: "16x9-octo-08-gumbo.jpg",
+    outputFile: "gumbo-promoted.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute coral-tangerine fluffy plush octopus in a beige fedora and blue tie leaps up joyfully in a victory celebration, waving its chubby coral tentacles happily with a big cheerful smile. Occasionally it blinks with smooth, plain coral-tangerine plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "zest-promoted",
+    inputFile: "16x9-octo-12-zest.jpg",
+    outputFile: "zest-promoted.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute aqua-turquoise fluffy plush octopus with a mohawk tuft, headset, and yellow tie bounces joyfully in victory celebration, throwing its chubby aqua tentacles up with a big excited smile. Occasionally it blinks with smooth, plain aqua-turquoise plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "mochi-sleeping",
+    inputFile: "16x9-octo-07-mochi.jpg",
+    outputFile: "mochi-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute strawberry-cream fluffy plush octopus with pink headphones closes its smooth plain strawberry-pink plush eyelids into a peaceful horizontal line, rests softly on its folded front tentacles, and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
+    id: "boba-promoted",
+    inputFile: "16x9-octo-04-boba.jpg",
+    outputFile: "boba-promoted.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute shaggy matcha-mint plush octopus with tortoiseshell glasses and yellow bow leaps up joyfully in a victory celebration, waving its chubby mint tentacles happily with a big cheerful smile. Occasionally it blinks with smooth, plain matcha-mint plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "nori-promoted",
+    inputFile: "16x9-octo-06-nori.jpg",
+    outputFile: "nori-promoted.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute periwinkle-blue fluffy plush octopus in a mustard knit beanie and square glasses bounces joyfully in a victory celebration, raising its chubby periwinkle tentacles high in a cheer with a bright happy smile. Occasionally it blinks with smooth, plain periwinkle plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "mochi-promoted",
+    inputFile: "16x9-octo-07-mochi.jpg",
+    outputFile: "mochi-promoted.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute strawberry-cream fluffy plush octopus with pink headphones bounces joyfully in a happy dance, throwing its chubby strawberry-pink tentacles up in celebration with a bright happy smile. Occasionally it blinks with smooth, plain strawberry-pink plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "plum-sleeping",
+    inputFile: "16x9-octo-14-plum.jpg",
+    outputFile: "plum-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute royal-plum violet plush octopus with silver-streaked pompadour, cat-eye glasses, and pearl necklace closes its smooth plain plum-violet plush eyelids into a peaceful horizontal line and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
+    id: "inko-panicked",
+    inputFile: "16x9-scene-inko-panicked.jpg",
+    outputFile: "inko-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The panicked sky-blue fluffy plush octopus in a navy beret and silver round glasses trembles nervously with its front tentacles raised in shock behind the open silver laptop and glowing red-orange alert triangle badge, glancing worriedly toward the laptop screen. Occasionally it blinks with smooth, plain sky-blue plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "barnaby-panicked",
+    inputFile: "16x9-scene-barnaby-working.jpg",
+    outputFile: "barnaby-panicked.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute lavender-purple fluffy plush octopus in a black top hat and curly black moustache suddenly widens its eyes in panicked shock, raising both front lavender tentacles to clutch its cheeks nervously while looking down at the stacked white envelopes on the desk as its top hat wobbles slightly. Occasionally it blinks with smooth, plain lavender plush eyelids that close into a simple clean horizontal line. Keep the eyes simple round white plush toy spheres with solid black pupils. Smooth 3D plush animation.",
+  },
+  {
+    id: "boba-sleeping",
+    inputFile: "16x9-octo-04-boba.jpg",
+    outputFile: "boba-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute shaggy matcha-mint plush octopus with tortoiseshell glasses and yellow bow closes its smooth plain matcha-mint plush eyelids into a peaceful horizontal line, rests its chin softly on its folded front tentacles, and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
+    id: "nori-sleeping",
+    inputFile: "16x9-octo-06-nori.jpg",
+    outputFile: "nori-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute periwinkle-blue fluffy plush octopus in a mustard knit beanie and dark square glasses closes its smooth plain periwinkle plush eyelids into a peaceful horizontal line, rests softly on its folded front tentacles, and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
+    id: "mochi-sleeping",
+    inputFile: "16x9-octo-07-mochi.jpg",
+    outputFile: "mochi-sleeping.mp4",
+    alsoCopyTo: [],
+    prompt:
+      "Static locked camera, wide framing, do not zoom in. The cute strawberry-cream fluffy plush octopus with pink headphones closes its smooth plain strawberry-pink plush eyelids into a peaceful horizontal line, rests softly on its folded front tentacles, and gently rises and falls in a slow sleepy snoozing rhythm. Smooth 3D plush animation.",
+  },
+  {
     id: "squidney-promoted",
     inputFile: "16x9-octo-03-squidney.jpg",
     outputFile: "squidney-promoted.mp4",

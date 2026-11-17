@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { HashmetaTrustPortal } from "@/components/HashmetaTrustPortal";
 import { BUSINESS_PRESETS, buildPresetSnapshot } from "@/data/businessPresets";
+import { isBoardMemberAgent } from "@/data/mockOctoData";
 import { loadPersistedOctoState } from "@/lib/demoStorage";
 import { JobSeat, OctoAgent } from "@/types/octo";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
@@ -40,7 +41,7 @@ function PublicHashmetaPortalContent() {
 
   const seatedAgents = seats
     .map((s) => candidates.find((c) => c.id === s.occupantId))
-    .filter((a): a is OctoAgent => Boolean(a));
+    .filter((a): a is OctoAgent => a !== undefined && !isBoardMemberAgent(a));
 
   return (
     <div className="min-h-screen bg-[#F4F7F9] bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.09),transparent_55%)] text-slate-900 p-4 sm:p-6">

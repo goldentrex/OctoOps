@@ -19,12 +19,12 @@ export type OctoAccessory =
   | "tophat_moustache"   // 02 Barnaby: Lavender fluff, top hat, handlebar moustache
   | "headset_tie"        // 03 Squidney: Pink fluff, cowlick, headset, striped tie
   | "boba_matcha"        // 04 Boba: Baby matcha-mint shaggy fluff, pom-pom, tortoiseshell glasses, yellow bow
-  | "cfo_monocle"        // 05 Waffles / Reginald CFO: Peach sherpa fleece, green banker visor, polka-dot bowtie
+  | "cfo_monocle"        // 05 Reginald CFO (Octo-Board): Peach sherpa fleece, green banker visor, polka-dot bowtie
   | "nori_beanie"        // 06 Nori: Periwinkle fluff, spiky hair, mustard beanie, square glasses
   | "mochi_headphones"   // 07 Mochi: Strawberry-cream cloud fluff, pink hair bow, headphones
   | "gumbo_fedora"       // 08 Gumbo: Coral-tangerine fluff, ginger eyebrows, beige fedora, blue tie
-  | "ciso_detective"     // 09 Pebble / Cassandra CISO: Lilac-grey tweed fluff, Sherlock cap, brass monocle
-  | "vp_shades"          // 10 Yuzu / Pulse VP: Lemon-yellow fluff, backwards teal cap, star sunglasses
+  | "ciso_detective"     // 09 Cassandra CISO (Octo-Board): Lilac-grey tweed fluff, Sherlock cap, brass monocle
+  | "vp_shades"          // 10 Pulse VP (Octo-Board): Lemon-yellow fluff, backwards teal cap, star sunglasses
   | "truffle_prof"       // 11 Truffle: Cocoa-taupe fluff, white professor hair, gold glasses, scarf
   | "zest_mohawk"        // 12 Zest: Aqua-turquoise spiky fluff, mohawk tuft, headset, yellow tie
   | "founder_crown"      // 13 Pistachio: Pistachio-green curly fleece, white beret, brown moustache

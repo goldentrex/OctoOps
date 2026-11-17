@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { GovernanceAuditEvent, JobSeat, OctoAgent } from "@/types/octo";
 import {
   evaluateAgentActionGuardrail,
@@ -426,62 +427,78 @@ export const GuardrailSandboxPanel: React.FC<GuardrailSandboxPanelProps> = ({
         )}
 
         {/* Evaluation Output Banner */}
-        {lastResult && (
-          <div
-            className={`rounded-2xl p-4 ring-1 space-y-2.5 ${
-              lastResult.result.allowed
-                ? "bg-emerald-50/80 ring-emerald-200 text-emerald-950"
-                : "bg-rose-50/90 ring-rose-200 text-rose-950"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
-                {lastResult.result.allowed ? (
-                  <>
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>
-                      ALLOWED — {lastResult.agentName} cleared OctoGuard DLP
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>
-                      INTERCEPTED by {lastResult.result.blockedBy}
-                    </span>
-                  </>
-                )}
+        <AnimatePresence mode="wait">
+          {lastResult && (
+            <motion.div
+              key={`${lastResult.agentId}-${lastResult.result.allowed}-${lastResult.result.blockedBy ?? "ok"}`}
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                transition: { duration: 0.24, ease: [0.23, 1, 0.32, 1] },
+              }}
+              exit={{
+                opacity: 0,
+                y: -6,
+                scale: 0.98,
+                transition: { duration: 0.16, ease: [0.23, 1, 0.32, 1] },
+              }}
+              className={`rounded-2xl p-4 ring-1 space-y-2.5 ${
+                lastResult.result.allowed
+                  ? "bg-emerald-50/80 ring-emerald-200 text-emerald-950"
+                  : "bg-rose-50/90 ring-rose-200 text-rose-950"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
+                  {lastResult.result.allowed ? (
+                    <>
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>
+                        ALLOWED — {lastResult.agentName} cleared OctoGuard DLP
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>
+                        INTERCEPTED by {lastResult.result.blockedBy}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <span
+                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full tabular-nums ${
+                    lastResult.result.allowed
+                      ? "bg-emerald-600 text-white"
+                      : "bg-rose-600 text-white"
+                  }`}
+                >
+                  {lastResult.result.trustScoreDelta >= 0 ? "+" : ""}
+                  {lastResult.result.trustScoreDelta} Trust
+                </span>
               </div>
-              <span
-                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full tabular-nums ${
-                  lastResult.result.allowed
-                    ? "bg-emerald-600 text-white"
-                    : "bg-rose-600 text-white"
-                }`}
-              >
-                {lastResult.result.trustScoreDelta >= 0 ? "+" : ""}
-                {lastResult.result.trustScoreDelta} Trust
-              </span>
-            </div>
 
-            <p className="text-xs font-medium leading-relaxed opacity-90">
-              {lastResult.result.allowed
-                ? "Tenant isolation verified, zero restricted PII detected, and RBAC permission scope satisfied."
-                : lastResult.result.violationReason}
-            </p>
+              <p className="text-xs font-medium leading-relaxed opacity-90">
+                {lastResult.result.allowed
+                  ? "Tenant isolation verified, zero restricted PII detected, and RBAC permission scope satisfied."
+                  : lastResult.result.violationReason}
+              </p>
 
-            {lastResult.result.triggerBoardTribunal && selectedAgent && (
-              <button
-                type="button"
-                onClick={() => onSummonBoard(selectedAgent)}
-                className="pressable px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-sm"
-              >
-                <Gavel className="w-3.5 h-3.5" />
-                Convene Octo-Board Tribunal for {lastResult.agentName}
-              </button>
-            )}
-          </div>
-        )}
+              {lastResult.result.triggerBoardTribunal && selectedAgent && (
+                <button
+                  type="button"
+                  onClick={() => onSummonBoard(selectedAgent)}
+                  className="pressable px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-sm"
+                >
+                  <Gavel className="w-3.5 h-3.5" />
+                  Convene Octo-Board Tribunal for {lastResult.agentName}
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* RIGHT 5 COLS: COMPANY-WIDE GOVERNANCE AUDIT LOG */}

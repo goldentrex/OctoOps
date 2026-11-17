@@ -1,6 +1,7 @@
+import { isBoardMemberAgent } from "@/data/mockOctoData";
 import { GovernanceAuditEvent, JobSeat, OctoAgent } from "@/types/octo";
 
-export const OCTOOPS_STORAGE_KEY = "octoops-demo-state-v1";
+export const OCTOOPS_STORAGE_KEY = "octoops-demo-state-v2";
 
 export interface PersistedOctoState {
   activePresetId: string;
@@ -24,8 +25,20 @@ export function loadPersistedOctoState(): PersistedOctoState | null {
     ) {
       return null;
     }
+    const sanitizedCandidates = parsed.candidates.filter(
+      (c) => !isBoardMemberAgent(c)
+    );
+    const validCandidateIds = new Set(sanitizedCandidates.map((c) => c.id));
+    const sanitizedSeats = parsed.seats.map((s) =>
+      s.occupantId && !validCandidateIds.has(s.occupantId)
+        ? { ...s, occupantId: null }
+        : s
+    );
+
     return {
       ...parsed,
+      seats: sanitizedSeats,
+      candidates: sanitizedCandidates,
       auditLog: Array.isArray(parsed.auditLog) ? parsed.auditLog : [],
     };
   } catch {

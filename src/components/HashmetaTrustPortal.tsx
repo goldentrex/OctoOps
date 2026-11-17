@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { JobSeat, OctoAgent } from "@/types/octo";
 import { OctoPuppet } from "./OctoPuppet";
 import {
@@ -219,26 +220,42 @@ export const HashmetaTrustPortal: React.FC<HashmetaTrustPortalProps> = ({
           </div>
         </div>
 
-        {lastSimulation && (
-          <div
-            className={`mb-5 p-3.5 rounded-2xl ring-1 text-xs font-semibold flex items-center justify-between gap-3 ${
-              lastSimulation.outcome === "AUTONOMOUS_SENT"
-                ? "bg-emerald-50 ring-emerald-200 text-emerald-950"
-                : lastSimulation.outcome === "DLP_BLOCKED"
-                ? "bg-rose-50 ring-rose-200 text-rose-950"
-                : "bg-amber-50 ring-amber-200 text-amber-950"
-            }`}
-          >
-            <span>{lastSimulation.message}</span>
-            <button
-              type="button"
-              onClick={() => setLastSimulation(null)}
-              className="text-[11px] font-bold opacity-70 hover:opacity-100 shrink-0"
+        <AnimatePresence>
+          {lastSimulation && (
+            <motion.div
+              key={`${lastSimulation.agentName}-${lastSimulation.outcome}-${lastSimulation.client}`}
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                transition: { duration: 0.24, ease: [0.23, 1, 0.32, 1] },
+              }}
+              exit={{
+                opacity: 0,
+                y: -6,
+                scale: 0.98,
+                transition: { duration: 0.16, ease: [0.23, 1, 0.32, 1] },
+              }}
+              className={`mb-5 p-3.5 rounded-2xl ring-1 text-xs font-semibold flex items-center justify-between gap-3 ${
+                lastSimulation.outcome === "AUTONOMOUS_SENT"
+                  ? "bg-emerald-50 ring-emerald-200 text-emerald-950"
+                  : lastSimulation.outcome === "DLP_BLOCKED"
+                  ? "bg-rose-50 ring-rose-200 text-rose-950"
+                  : "bg-amber-50 ring-amber-200 text-amber-950"
+              }`}
             >
-              Clear
-            </button>
-          </div>
-        )}
+              <span>{lastSimulation.message}</span>
+              <button
+                type="button"
+                onClick={() => setLastSimulation(null)}
+                className="text-[11px] font-bold opacity-70 hover:opacity-100 shrink-0"
+              >
+                Clear
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {agents.map((agent) => {
