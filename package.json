@@ -10,7 +10,8 @@
     "test": "vitest run",
     "clean": "rm -rf .next",
     "eval": "vitest run evals/run.test.ts",
-    "skill:zip": "cd qwenwork-skills && zip -r octoguard.zip octoguard"
+    "skill:zip": "cd qwenwork-skills && zip -r octoguard.zip octoguard",
+    "eval:live": "vitest run evals/live.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

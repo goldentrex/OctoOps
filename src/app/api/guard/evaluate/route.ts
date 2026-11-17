@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkWriteAuth, parseBody } from "@/lib/api/auth";
 import { guardActionSchema } from "@/lib/api/schemas";
+import { createQwenJudge } from "@/lib/llm/judge";
 import { getStore } from "@/lib/store";
 
 export async function POST(req: NextRequest) {
@@ -8,6 +9,6 @@ export async function POST(req: NextRequest) {
   if (auth) return auth;
   const parsed = await parseBody(req, guardActionSchema);
   if ("response" in parsed) return parsed.response;
-  const result = await getStore().evaluate(parsed.data);
+  const result = await getStore().evaluate(parsed.data, createQwenJudge());
   return NextResponse.json(result);
 }
