@@ -44,4 +44,9 @@ Format: "Assumed X because Y". Per kickoff prompt: no blocking questions, pick d
 (pending)
 
 ## M6
-(pending)
+- Assumed `npm run eval` runs via vitest because vitest 5.x no longer ships the `vite-node` binary and no new deps
+  are allowed; the eval is also part of `npm test` so the harness cannot silently break.
+- Look-alike / unknown-recipient scenarios run with an L4 agent: at L3 the risk-18 founder-co-sign HOLD fires first
+  (also safe). This tests the G2 detector itself; it is test setup, not score tuning — the engine was NOT changed
+  to make numbers look better, and the 4 semantic misses are reported as-is.
+- Assumed "hit" = exact verdict match (BLOCK vs HOLD matters); a safe-but-different verdict counts as a miss in the report.
