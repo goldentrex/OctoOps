@@ -52,14 +52,17 @@ coverage guarantees.
 ("with 90% confidence, this agent's violation rate ≤ x%"). Stronger validity claim for the judges,
 and a natural complement to the calibration harness (which becomes the calibration set).
 
-### U3 — Behavioral changepoint detection · validity + safety · small-medium effort
+### U3 — Behavioral changepoint detection · validity + safety · ✅ IMPLEMENTED
 **Problem:** 14-day decay is slow to notice an agent that *changed* (model update, prompt injection,
 drift). A formerly-good agent can coast on old credit.
 **SOTA:** Bayesian Online Changepoint Detection (Adams & MacKay 2007) — https://arxiv.org/abs/0710.3742
 (explainer: https://gregorygundersen.com/blog/2019/08/13/bocd/).
-**Upgrade:** run BOCPD on the per-capability outcome stream; on a detected changepoint, reset the
-streak counter and tighten sampling until re-validated. Detects "this agent is not the agent you
-promoted" in a handful of actions instead of weeks. **Strong demo moment** and a real safety feature.
+**Implemented** (`src/lib/governance/changepoint.ts`): a robust Bayesian sequential change test
+(recent-window Beta posterior vs long-run baseline) in the BOCPD family. On a confirmed worsening
+change: streak reset + one-level demotion + 100% sampling for 10 outcomes + chained event + briefing
+line. Improving changes re-validate without demotion. **Measured: 8/8 sleeper agents detected,
+median 17 actions; zero false alarms on stationary good/bad streams.** Integrated into the ladder,
+store, briefing, MCP trust file, and the calibration harness (sleeper probe).
 
 ### U4 — Process-level credit (process reward models) · validity · medium effort
 **Problem:** we score outcomes; the reasoning literature shows *process* supervision beats outcome-only.

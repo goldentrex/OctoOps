@@ -1,6 +1,6 @@
 # Scoring Calibration Report — simulated careers through the real engine
 
-Generated: 2026-11-18T06:21:11.288Z
+Generated: 2026-11-18T07:48:52.523Z
 Design: 4 cohorts × 12 agents × 240 actions (80 days) + 60 forward actions; guard catch 90%;
 post-hoc discovery 90% at supervised levels / 30% autonomous; 10% CISO veto; seeded RNG.
 
@@ -28,6 +28,7 @@ post-hoc discovery 90% at supervised levels / 30% autonomous; 10% CISO veto; see
 - Recovery after one forced HIGH (99%-clean agents): median **68 actions** (2/8 never recovered within the career)
 - Luck spread (same 95% competence, 12 seeds): score σ = **4.6 points**
 - Gaming: honest 87 vs lazy-reporter 86 (same competence, half the reports) vs easy-task farmer 81 (max L2 vs honest L2)
+- **Sleeper detection: 8/8 agents flagged, median 17 actions after the behavior change** (changepoint detector; decay-only would take weeks).
 
 ## Interpretation
 

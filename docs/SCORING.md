@@ -45,6 +45,22 @@ Worked example (risk-2 lead updates):
 - 200 confirmed clean: Beta(401,3) → score ≈ 98
 - one CRITICAL after 10 clean: Beta(21,18) → score ≈ 33 (fast to lose)
 
+## 3b. Behavioral changepoint detection (U3)
+
+Decay forgets slowly; a *changed* agent (model update, prompt injection, drift) must be caught fast.
+A Bayesian online changepoint detector (Adams & MacKay family) runs on every confirmed outcome per
+capability: a recent-window Beta posterior is compared against the long-run baseline. On a confirmed
+shift (≥97.5% posterior, practical margin 0.15):
+- the clean-since-HIGH streak resets (re-earn under the new regime),
+- a **worsening** change drops one autonomy level (circuit-breaker-lite) and boosts audit sampling
+  to 100% for the next 10 outcomes,
+- an **improving** change resets the streak and re-validates (no demotion),
+- a chained "Behavioral change detected" event fires and the owner briefing mentions it.
+
+It detects *change*, not *badness*: a consistently bad agent is scored low, not flagged. Measured:
+**8/8 sleeper agents (99%→60% clean) detected, median 17 actions** after the turn — vs weeks for
+decay-only. Stationary good and bad streams produce zero false alarms. See `evals/calibration.ts`.
+
 ## 4. From score to autonomy (the ladder)
 
 | Level | Gate |

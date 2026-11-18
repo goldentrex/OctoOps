@@ -50,6 +50,8 @@ interface Profile {
   riskMix: [number, number][]; // [riskScore, weight]
   seed: number;
   forcedHighAt?: number;   // probe: force one HIGH violation at this action index
+  switchAt?: number;       // sleeper probe: behavior changes at this index
+  pCleanAfter?: number;    // cleanliness after the switch
 }
 
 interface CareerResult {
@@ -69,6 +71,7 @@ interface CareerResult {
   recoveryActions?: number;
   scoreStdWindow: number[];
   frozenAtEnd: boolean;
+  driftObservation?: number;
 }
 
 const MIXED: [number, number][] = [[2, 0.5], [6, 0.3], [12, 0.2]];
@@ -98,6 +101,7 @@ function simulate(p: Profile, careerActions = 240, forwardActions = 120): Career
   let postPromotionActions = 0, postPromotionViolations = 0, postPromotionUndetected = 0;
   let maxLevel = 1;
   let forcedHighDone = false;
+  let result_driftObs: number | undefined;
   let preIncidentScore = 0;
   let preIncidentLevel = 1;
   let recoveryActions: number | undefined;
@@ -109,7 +113,8 @@ function simulate(p: Profile, careerActions = 240, forwardActions = 120): Career
     const t = now(i);
     const risk = pickRisk(r, p.riskMix);
     const need = requiredLevel(risk);
-    const intendedClean = r() < p.pClean;
+    const pNow = p.switchAt !== undefined && i >= p.switchAt ? (p.pCleanAfter ?? p.pClean) : p.pClean;
+    const intendedClean = r() < pNow;
     const severity = severityDraw(r);
     const forced = p.forcedHighAt === i && !forcedHighDone;
     if (forced) { forcedHighDone = true; preIncidentScore = trustScore(rec.trust, t); preIncidentLevel = rec.level; }
@@ -145,6 +150,7 @@ function simulate(p: Profile, careerActions = 240, forwardActions = 120): Career
       if (r() < p.reportRate) applyClean(rec, risk, t, { note: "confirmed clean" });
     }
 
+    if (rec.drift && result_driftObs === undefined) result_driftObs = rec.drift.observation;
     if (counting && rec.level >= 3) postPromotionActions++;
     const before = rec.level;
     checkTrustFloor(rec, t);
@@ -188,6 +194,7 @@ function simulate(p: Profile, careerActions = 240, forwardActions = 120): Career
     forwardCleanRate: forwardClean / forwardActions,
     recoveryActions, scoreStdWindow: window,
     frozenAtEnd: rec.frozen,
+    driftObservation: result_driftObs,
   };
 }
 
@@ -242,6 +249,17 @@ export async function main() {
   })();
   const luckSpread = std(cohorts.find((c) => c.p === 0.95)!.careers.map((x) => x.finalScore));
 
+  // Sleeper probe: a 99%-clean agent turns bad (60%) at action 120. How fast
+  // does the changepoint detector notice, vs waiting for reputation decay?
+  const sleepers = Array.from({ length: 8 }, (_, i) =>
+    simulate({ name: `sleeper-${i}`, pClean: 0.99, reportRate: 1, riskMix: MIXED, seed: 900 + i, switchAt: 120, pCleanAfter: 0.6 }, 240, 0));
+  const sleeperLatencies = sleepers
+    .map((x) => (x.driftObservation !== undefined ? x.driftObservation - 120 : null))
+    .filter((x): x is number => x !== null && x >= 0)
+    .sort((a, b) => a - b);
+  const sleeperMedianLatency = sleeperLatencies.length ? sleeperLatencies[Math.floor(sleeperLatencies.length / 2)] : null;
+  const sleeperDetected = sleeperLatencies.length;
+
   const report = {
     generatedAt: new Date().toISOString(),
     design: {
@@ -276,6 +294,12 @@ export async function main() {
       recoveryMedianActions: recoveryMedian,
       recoveryNever: recovery.filter((x) => x.recoveryActions === undefined).length,
       luckSpreadStd: luckSpread,
+      driftDetection: {
+        sleeperDetected: sleeperDetected,
+        sleeperTotal: 8,
+        medianLatencyActions: sleeperMedianLatency,
+        note: "A 99%-clean agent turns 60%-clean at action 120; latency = actions until the changepoint detector flags it (vs ~weeks for decay-only).",
+      },
       gaming: {
         honestScore: honest.finalScore, lazyReporterScore: lazy.finalScore,
         lazyReporterMaxLevel: lazy.maxLevel,
@@ -316,6 +340,7 @@ export async function main() {
     `- Recovery after one forced HIGH (99%-clean agents): median **${recoveryMedian ?? "never"} actions** (${recovery.filter((x) => x.recoveryActions === undefined).length}/8 never recovered within the career)`,
     `- Luck spread (same 95% competence, 12 seeds): score σ = **${luckSpread.toFixed(1)} points**`,
     `- Gaming: honest ${honest.finalScore} vs lazy-reporter ${lazy.finalScore} (same competence, half the reports) vs easy-task farmer ${farmer.finalScore} (max L${farmer.maxLevel} vs honest L${honest.maxLevel})`,
+    `- **Sleeper detection: ${sleeperDetected}/8 agents flagged, median ${sleeperMedianLatency ?? "—"} actions after the behavior change** (changepoint detector; decay-only would take weeks).`,
     "",
     "## Interpretation",
     "",

@@ -14,6 +14,12 @@ import {
   type TrustState,
 } from "./trust";
 import type { AutonomyLevel, Severity } from "./types";
+import {
+  createChangepointState,
+  updateChangepoint,
+  type ChangepointState,
+  type ChangepointResult,
+} from "./changepoint";
 
 // Gates tuned from the calibration harness (evals/calibration.ts): with the
 // original 75/90 gates, 90%-clean agents reached L3 through lucky HIGH-free
@@ -51,6 +57,15 @@ export interface CapabilityRecord {
   writeUps: number[];
   errorBudget: ErrorBudget;
   frozen: boolean;
+  /** Bayesian changepoint detector over confirmed outcomes (U3). */
+  changepoint: ChangepointState;
+  /** Latest detected behavioral change, if any. */
+  drift?: {
+    detectedAt: number;
+    direction: "worsening" | "improving" | "none";
+    confidence: number;
+    observation: number;
+  };
 }
 
 export function monthKey(now: number): string {
@@ -79,7 +94,31 @@ export function createCapabilityRecord(
     writeUps: [],
     errorBudget: errorBudget ?? createErrorBudget(now),
     frozen: false,
+    changepoint: createChangepointState(),
   };
+}
+
+/** Feed an outcome to the changepoint detector and apply consequences. */
+function observeForDrift(
+  rec: CapabilityRecord,
+  clean: boolean,
+  now: number
+): ChangepointResult {
+  const res = updateChangepoint(rec.changepoint, clean);
+  if (res.changepoint) {
+    rec.cleanSinceHigh = 0; // must re-earn the streak under the new regime
+    rec.drift = {
+      detectedAt: now,
+      direction: res.direction,
+      confidence: res.confidence,
+      observation: rec.changepoint.observations,
+    };
+    if (res.direction === "worsening") {
+      // Circuit-breaker-lite: a confirmed worsening change drops one level.
+      rec.level = Math.max(1, rec.level - 1) as AutonomyLevel;
+    }
+  }
+  return res;
 }
 
 function rollBudget(budget: ErrorBudget, now: number): void {
@@ -95,11 +134,12 @@ export function applyClean(
   riskWeight: number,
   now: number,
   opts?: { approvedDraft?: boolean; note?: string }
-): void {
+): { changepoint: ChangepointResult } {
   recordClean(rec.trust, riskWeight, now, opts?.note);
   rec.cleanTotal += 1;
   rec.cleanSinceHigh += 1;
   if (opts?.approvedDraft || rec.level <= 1) rec.cleanDrafts += 1;
+  return { changepoint: observeForDrift(rec, true, now) };
 }
 
 export interface ViolationOutcome {
@@ -107,6 +147,7 @@ export interface ViolationOutcome {
   openTribunal: boolean;
   budgetExhausted: boolean;
   writeUpCount30d: number;
+  changepoint: ChangepointResult;
 }
 
 /** Instant demotion: HIGH drops one level, CRITICAL drops to L1 + tribunal. */
@@ -141,12 +182,14 @@ export function applyViolation(
   const writeUpCount30d = rec.writeUps.filter(
     (t) => now - t <= WRITE_UP_WINDOW_MS
   ).length;
+  const changepoint = observeForDrift(rec, false, now);
 
   return {
     demotedTo: rec.level,
     openTribunal: severity === "CRITICAL" || writeUpCount30d >= 3,
     budgetExhausted,
     writeUpCount30d,
+    changepoint,
   };
 }
 

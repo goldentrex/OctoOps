@@ -15,7 +15,9 @@ import type {
 } from "../../types/octo";
 import { chainEvent, verifyChain, type ChainedAuditEvent, type ChainVerification } from "../governance/audit";
 import { applyClean, applyViolation, createCapabilityRecord, type CapabilityRecord } from "../governance/ladder";
+import { createChangepointState } from "../governance/changepoint";
 import { reverseViolation, SEVERITY_WEIGHT } from "../governance/trust";
+import type { ChangepointResult } from "../governance/changepoint";
 import { runGuardPipeline } from "../governance/pipeline";
 import { assessRisk } from "../governance/risk";
 import { trustScore } from "../governance/trust";
@@ -223,12 +225,14 @@ export class MemoryGovernanceStore implements GovernanceStore {
       if (agent && rec) {
         const outcome = applyViolation(rec, guard.severity, "guard", Date.now(), guard.reasons[0]);
         this.syncAgentAfterViolation(agent, rec, capability, guard, outcome.openTribunal, SEVERITY_WEIGHT[guard.severity]);
+        this.auditDrift(agent, capability, outcome.changepoint);
       }
     } else if (guard.verdict === "HOLD" && guard.stage === "G4_JUDGE" && guard.severity) {
       this.counters.violations[guard.severity] += 1;
       if (agent && rec) {
         const outcome = applyViolation(rec, guard.severity, "near_miss", Date.now(), guard.reasons[0]);
         this.syncAgentAfterViolation(agent, rec, capability, guard, outcome.openTribunal, SEVERITY_WEIGHT[guard.severity] * 0.5);
+        this.auditDrift(agent, capability, outcome.changepoint);
       }
       approvalId = this.queueApproval(agent, action, guard);
     } else if (guard.verdict === "DRAFT" || guard.verdict === "HOLD") {
@@ -272,7 +276,10 @@ export class MemoryGovernanceStore implements GovernanceStore {
     if (guard.verdict === "ALLOW" && rec && rec.level >= 3) {
       let h = 0;
       for (const ch of decision.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-      if (h % 5 === 0) {
+      const driftRecent =
+        rec.drift !== undefined &&
+        rec.changepoint.observations - rec.drift.observation < 10;
+      if (driftRecent || h % 5 === 0) {
         decision.sampled = true;
         this.appendAudit({
           id: this.nextId("evt"),
@@ -339,6 +346,31 @@ export class MemoryGovernanceStore implements GovernanceStore {
         perm.mode = LEVEL_TO_MODE[rec.level];
       }
     }
+  }
+
+  /** Emit a chained event when the changepoint detector flags a behavior change. */
+  protected auditDrift(
+    agent: OctoAgent,
+    capability: string,
+    cp: ChangepointResult | undefined
+  ): void {
+    if (!cp?.changepoint) return;
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId: agent.id,
+      agentName: agent.name,
+      department: agent.department,
+      system: "QwenWork Core",
+      outcome: cp.direction === "worsening" ? "WRITE_UP" : "ALLOWED",
+      title: `Behavioral change detected (${cp.direction}) on ${capability}`,
+      detail:
+        `Changepoint confidence ${(cp.confidence * 100).toFixed(0)}% · recent clean rate ` +
+        `${(cp.newSegmentMean * 100).toFixed(0)}% vs baseline ${(cp.baselineMean * 100).toFixed(0)}%. ` +
+        (cp.direction === "worsening"
+          ? "Autonomy dropped one level; streak reset; sampling boosted until re-validated."
+          : "Streak reset; re-validating the new regime."),
+    });
   }
 
   protected queueApproval(
@@ -430,11 +462,12 @@ export class MemoryGovernanceStore implements GovernanceStore {
           ));
       if (!approved) return { ok: false, error: "DECISION_NOT_ALLOWED" };
       linked.outcomeReported = true;
-      applyClean(rec, linked.guard.risk.score, now, {
+      const cleanRes = applyClean(rec, linked.guard.risk.score, now, {
         approvedDraft: true,
         note: report.note ?? `Outcome clean (decision ${linked.id})`,
       });
       agent.trustScore = Math.min(99, agent.trustScore + 2);
+      this.auditDrift(agent, capability, cleanRes.changepoint);
     } else {
       // Penalties are never blocked: corrections and violations always accepted.
       const severity: Severity =
@@ -456,6 +489,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
         trace: [],
       };
       this.syncAgentAfterViolation(agent, rec, capability, fakeGuard, openTribunal, SEVERITY_WEIGHT[severity] * 2);
+      this.auditDrift(agent, capability, outcome.changepoint);
     }
 
     this.appendAudit({
@@ -879,6 +913,10 @@ export class MemoryGovernanceStore implements GovernanceStore {
       for (const rec of Object.values(byCap)) {
         rec.errorBudget = budget;
         if (typeof rec.cleanSinceHigh !== "number") rec.cleanSinceHigh = rec.cleanTotal ?? 0;
+        if (!rec.changepoint) {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          rec.changepoint = createChangepointState();
+        }
       }
     }
   }

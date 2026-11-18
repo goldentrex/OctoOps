@@ -148,6 +148,7 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
           cleanDrafts: c.cleanDrafts,
           explanation: explain(c.trust, now),
           nextPromotionGate: checkPromotionGate(c, now),
+          drift: c.drift ?? null,
         })),
         errorBudget: file.errorBudget,
       });
