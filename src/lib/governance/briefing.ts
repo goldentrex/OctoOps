@@ -105,6 +105,20 @@ export function generateBriefing(
     );
   }
 
+  // Workflow v2: task hygiene — unreported work and still-open tasks.
+  const taskEnds = recent.filter((e) => e.event.title.startsWith("Task ended:"));
+  const unreported = taskEnds.filter((e) => /NO outcome reported/.test(e.event.detail));
+  for (const e of unreported) {
+    lines.push(
+      `${e.event.agentName} finished a task with work that was never reported — ask for the outcome before trusting it.`
+    );
+  }
+  const started = recent.filter((e) => e.event.title.startsWith("Task started:")).length;
+  const openTasks = started - taskEnds.length;
+  if (openTasks > 0) {
+    lines.push(`${openTasks} task${openTasks === 1 ? " is" : "s are"} still open.`);
+  }
+
   for (const e of promoted) {
     lines.push(`${e.event.agentName} earned a promotion: ${e.event.detail.split(".")[0]}.`);
   }

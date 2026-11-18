@@ -25,6 +25,7 @@ export const guardActionSchema = z.object({
   actionType: z.enum(["SEND_DIRECT_EMAIL", "PUBLISH_ARTICLE", "UPDATE_LEAD"]),
   targetSystem: z.enum(["HASHMETA_CRM", "HASHMETA_CMS", "HASHMETA_VISIBILITY"]),
   capability: z.string().min(1).optional(),
+  taskId: z.string().min(1).optional(),
   recipientTenant: z.string().min(1).optional(),
   recipientEmail: z.string().email().optional(),
   attachments: z.array(labeledSourceSchema).optional(),
@@ -57,4 +58,22 @@ export const boardDeliberateSchema = z.object({
   reviewType: z
     .enum(["PROMOTION_HEARING", "DISCIPLINARY_TRIBUNAL", "VISIBILITY_PIP"])
     .optional(),
+});
+export const startTaskSchema = z.object({
+  agentId: z.string().min(1),
+  title: z.string().min(1).max(200),
+  scope: z.array(z.string().min(1)).max(50),
+});
+
+export const endTaskSchema = z.object({
+  summary: z.string().max(1000).optional(),
+});
+
+export const logAccessSchema = z.object({
+  agentId: z.string().min(1),
+  resource: z.string().min(1),
+  purpose: z.string().max(500).optional(),
+  sensitivity: z.enum(["public", "internal", "client-confidential", "regulated"]).optional(),
+  inScope: z.boolean().optional(),
+  taskId: z.string().min(1).optional(),
 });

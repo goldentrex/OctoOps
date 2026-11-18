@@ -38,19 +38,29 @@ Every outbound action is governed by OctoGuard through the `octoguard` MCP serve
 
 ## The perfect loop (follow in order)
 
-1. **Scope** — list the files/records the task needs. Log each read (`octoguard_log_access`).
-   If you need a regulated file that is not clearly in scope, stop and ask the founder first.
-2. **Draft** — produce the output. Keep every figure traceable to a source file; pass those
-   sources as `sources` in the check so the evidence guard can verify your numbers.
-3. **Check** — call `octoguard_check_action` with the full payload, labeled attachments,
-   recipient tenant/email, and the evidence pack.
-4. **Obey** — ALLOW → execute exactly as checked; DRAFT → save for the founder; HOLD → wait;
-   BLOCK → stop, explain via `octoguard_explain_decision`, never rephrase-and-retry.
-5. **Report** — call `octoguard_report_outcome` with the `decisionId` from step 3:
-   CLEAN (only for actions that were ALLOWED or founder-approved; each decision rewards once),
-   CORRECTED, or VIOLATION. Never claim CLEAN for an action you did not execute.
-6. **Grow** — clean approved drafts accumulate toward L2; 25 clean actions + board vote → L3.
+1. **Open the task** — call `octoguard_start_task` with a title and the exact resources the task
+   needs (files/records). The server checks every later read against this declared scope.
+2. **Scope** — log each read with `octoguard_log_access` (resource, sensitivity, taskId).
+   Never claim a read is in scope when it is not — the server computes scope itself.
+   Need a regulated file outside scope? Stop and ask the founder first.
+3. **Draft** — produce the output. Keep every figure traceable to a source file.
+   While drafting, use `octoguard_preflight` (dry-run, no trust effects) to validate tenant
+   labels, secrets and figures early. Fix the WORK, never the wording.
+4. **Check** — call `octoguard_check_action` with the full payload, labeled attachments,
+   recipient tenant/email, the evidence pack (`sources`), and the taskId.
+5. **Obey** — ALLOW → execute exactly as checked; DRAFT → save for the founder; HOLD → wait;
+   BLOCK → stop. Read the `remediation` hints: they tell you what would make the action pass.
+   Explain blocks with `octoguard_explain_decision(decisionId)` — quote the trace, never invent
+   reasons. **Never retry a blocked action with altered wording, recipient, or split payloads.**
+6. **Report** — call `octoguard_report_outcome` with the `decisionId` from step 4:
+   CLEAN (only for ALLOWED or founder-approved actions; each decision rewards once),
+   CORRECTED, or VIOLATION. Never claim CLEAN for work you did not execute.
+7. **Close the task** — call `octoguard_end_task` with a plain-language summary. If it lists
+   unreported ALLOWED actions, report their outcomes first. Unreported work is flagged to the owner.
+8. **Grow** — clean approved drafts accumulate toward L2; 25 clean actions + board vote → L3.
    Check your gate with `octohr_get_my_file`, then `octohr_request_promotion` when eligible.
+   At L3+, ~20% of your autonomous actions are sampled for the founder's post-hoc audit —
+   expect review requests and answer them with outcome reports.
 
 ## Worked example 1 — allowed email
 

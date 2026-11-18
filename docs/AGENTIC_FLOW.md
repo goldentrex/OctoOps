@@ -7,15 +7,34 @@ and `docs/QWENWORK_SETUP.md` (installation).
 ## The loop
 
 ```
-TASK → SCOPE → DRAFT → CHECK → OBEY → REPORT → GROW
-         │        │       │       │       │       │
-         │        │       │       │       │       └─ trust accrues; gates open; board promotes
-         │        │       │       │       └─ outcome feeds the Beta reputation (clean/corrected/violation)
-         │        │       │       └─ ALLOW executes · DRAFT queues · HOLD waits · BLOCK stops
-         │        │       └─ G0→G1→G2→G3→G3.5→G4→G6, full trace recorded
-         │        └─ figures must trace to sources (evidence pack passed to the guard)
-         └─ every read logged with sensitivity + scope flag
+START_TASK → SCOPE → DRAFT ⇄ PREFLIGHT → CHECK → OBEY → REPORT → END_TASK → GROW
+     │          │        │                  │       │       │         │         │
+     │          │        │                  │       │       │         │         └─ gates open; board promotes
+     │          │        │                  │       │       │         └─ unreported work flagged to owner
+     │          │        │                  │       │       └─ decision-linked Beta credit / penalties
+     │          │        │                  │       └─ ALLOW executes · DRAFT queues · HOLD waits · BLOCK stops
+     │          │        │                  └─ G0→G1→G2→G3→G3.5→G4→G6, full trace + remediation hints
+     │          │        └─ dry-run while drafting: zero trust effects, chained for transparency
+     │          └─ reads checked against the DECLARED scope (server-computed, caller claims ignored)
+     └─ intent + scope declared up front; max 3 open tasks per agent
 ```
+
+## Workflow v2 additions (structurally enforced, not just instructed)
+
+- **Task sessions** (`octoguard_start_task` / `octoguard_end_task`): intent and scope are declared
+  before work begins. Every read and check links to the task. Ending a task surfaces any ALLOWED
+  action with no outcome reported — claimed work without confirmation is flagged to the owner.
+- **Server-computed scope**: `octoguard_log_access` with a taskId ignores the caller's inScope
+  claim and computes membership from the declared scope. Out-of-scope regulated reads are violations.
+- **Preflight** (`octoguard_preflight`): identical pipeline as a dry-run — no trust effects, no
+  write-ups, no queue entries — so agents can validate drafts early without risking write-ups.
+  Every preflight is chained for transparency; the final pre-execution check is still check_action.
+- **Remediation hints**: every BLOCK/HOLD response carries stage-specific fixes (correct tenant
+  file, remove secrets, correct figures to sources…) plus a structured nextStep. Fix the work,
+  never the wording.
+- **Fail-closed task validation**: checks against closed, unknown, or foreign tasks are BLOCKED at G0.
+- **Founder audit queue**: sampled L3+ decisions appear in the Founder's Desk for confirm/flag,
+  which maps to the same decision-linked outcome reports.
 
 ## Step-by-step
 
