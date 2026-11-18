@@ -9,10 +9,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
   boardDeliberateSchema,
+  endTaskSchema,
   guardActionSchema,
+  logAccessSchema,
   outcomeSchema,
+  startTaskSchema,
 } from "../api/schemas";
 import { checkPromotionGate } from "../governance/ladder";
+import { remediationFor, nextStepFor } from "../governance/remediation";
 import { explain } from "../governance/trust";
 import type { JudgeFn } from "../governance/types";
 import type { GovernanceStore } from "../store/types";
@@ -56,14 +60,8 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
         decisionId: result.decisionId ?? null,
         agentTrustScore: result.agentTrustScore ?? null,
         capabilityLevel: result.capabilityLevel ?? null,
-        instruction:
-          result.guard.verdict === "ALLOW"
-            ? "Proceed, then call octoguard_report_outcome with the result."
-            : result.guard.verdict === "DRAFT"
-            ? "Save the output as a draft for the founder. Do not send or publish."
-            : result.guard.verdict === "HOLD"
-            ? "Stop. The founder must approve this action in OctoOps."
-            : "Blocked. Do not execute. Do not retry with altered wording.",
+        remediation: remediationFor(result.guard),
+        nextStep: nextStepFor(result.guard, result.decisionId),
       });
     }
   );
@@ -163,34 +161,56 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
         "State the resource, its sensitivity (public | internal | client-confidential | regulated) " +
         "and whether it is in scope for the current task. Out-of-scope reads of regulated data are " +
         "violations; all reads appear in the owner's daily briefing.",
-      inputSchema: {
-        agentId: z.string().min(1),
-        resource: z.string().min(1).describe("File path or record id being read"),
-        purpose: z.string().max(500).optional(),
-        sensitivity: z.enum(["public", "internal", "client-confidential", "regulated"]).optional(),
-        inScope: z.boolean().optional().describe("Is this read needed for the task in hand?"),
-      },
+      inputSchema: logAccessSchema.shape,
     },
-    async ({ agentId, resource, purpose, sensitivity, inScope }) => {
-      const agent = store.getAgent(agentId);
-      const chained = store.appendAudit({
-        id: `evt-read-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        agentId,
-        agentName: agent?.name ?? agentId,
-        department: agent?.department ?? "QwenWork Ops",
-        system: "QwenWork Core",
-        outcome: "ALLOWED",
-        title: `Data access: ${resource}`,
-        detail: `${sensitivity ?? "unlabeled"} read${inScope === false ? " — OUT OF SCOPE for the task" : ""}.${purpose ? ` Purpose: ${purpose}` : ""}`,
-      });
+    async (args) => json(store.logAccess(args))
+  );
+
+  server.registerTool(
+    "octoguard_start_task",
+    {
+      description:
+        "Open a task session BEFORE working: declare the task title and the exact resources " +
+        "(files/records) the task needs. The server computes scope membership for every logged read " +
+        "against this declaration — reads outside it are flagged to the owner. Link checks and reads " +
+        "with the returned taskId. Max 3 open tasks per agent; end tasks when done.",
+      inputSchema: startTaskSchema.shape,
+    },
+    async (args) => json(store.startTask(args))
+  );
+
+  server.registerTool(
+    "octoguard_end_task",
+    {
+      description:
+        "Close a task session with a short plain-language summary of what was done. " +
+        "The response lists any ALLOWED actions with no outcome reported — report them before ending. " +
+        "Unreported work and out-of-scope reads are surfaced to the owner.",
+      inputSchema: { taskId: z.string().min(1), ...endTaskSchema.shape },
+    },
+    async ({ taskId, summary }) => json(store.endTask(taskId, summary))
+  );
+
+  server.registerTool(
+    "octoguard_preflight",
+    {
+      description:
+        "Dry-run the guard while drafting: identical pipeline, but NO trust effects, no write-ups, " +
+        "no approval queue entries. Use it to validate tenant labels, secrets and figures before the " +
+        "real check. Every preflight is logged for transparency. The FINAL check before execution " +
+        "must still be octoguard_check_action.",
+      inputSchema: guardActionSchema.shape,
+    },
+    async (args) => {
+      const { guard, remediation } = await store.preflight(args, judge);
       return json({
-        logged: true,
-        seq: chained.seq,
-        warning:
-          sensitivity === "regulated" && inScope === false
-            ? "Out-of-scope regulated read recorded as a violation. It will appear in the owner's briefing."
-            : null,
+        dryRun: true,
+        verdict: guard.verdict,
+        stage: guard.stage,
+        reasons: guard.reasons,
+        riskScore: guard.risk.score,
+        remediation,
+        note: "No trust effects. Run octoguard_check_action before executing.",
       });
     }
   );

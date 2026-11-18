@@ -42,7 +42,9 @@ import type {
   GovernanceStore,
   MetricsSnapshot,
   OutcomeReport,
+  TaskRecord,
 } from "./types";
+import { remediationFor } from "../governance/remediation";
 
 const CORE_CAPABILITIES = new Set(Object.values(CAPABILITY_BY_ACTION));
 
@@ -51,6 +53,7 @@ export interface StoreSnapshot {
   audit: ChainedAuditEvent[];
   approvals: ApprovalItem[];
   decisions?: DecisionRecord[];
+  tasks?: TaskRecord[];
   latencies: number[];
   counters: {
     evaluated: number;
@@ -73,6 +76,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
   protected audit: ChainedAuditEvent[] = [];
   protected approvals: ApprovalItem[] = [];
   protected decisions: DecisionRecord[] = [];
+  protected tasks: TaskRecord[] = [];
   protected latencies: number[] = [];
   protected counters = {
     evaluated: 0,
@@ -167,6 +171,27 @@ export class MemoryGovernanceStore implements GovernanceStore {
   async evaluate(action: GuardAction, judge?: JudgeFn): Promise<EvaluateResponse> {
     const agent = this.getAgent(action.agentId);
     const capability = action.capability ?? CAPABILITY_BY_ACTION[action.actionType];
+
+    // Workflow v2: a declared task must be real, open, and the agent's own.
+    let task: TaskRecord | undefined;
+    if (action.taskId) {
+      task = this.tasks.find((t) => t.id === action.taskId);
+      if (!task || task.endedAt || task.agentId !== action.agentId) {
+        const guard = await runGuardPipeline(
+          action,
+          { agentId: action.agentId, exists: false, seatAssigned: false, capabilityLevels: {} },
+          { registry: this.state.registry }
+        );
+        guard.reasons = [`Invalid, closed, or foreign task "${action.taskId}". Start a task with octoguard_start_task.`];
+        guard.trace = guard.trace.map((s) =>
+          s.stage === "G0_IDENTITY" ? { ...s, status: "FAIL", detail: guard.reasons[0] } : s
+        );
+        this.appendAudit(this.auditEventFor(action, agent, guard));
+        this.persist();
+        return { guard };
+      }
+    }
+
     const guard = await runGuardPipeline(action, this.contextFor(agent, action), {
       registry: this.state.registry,
       judge,
@@ -235,7 +260,9 @@ export class MemoryGovernanceStore implements GovernanceStore {
       levelBefore,
       levelAfter: rec?.level ?? levelBefore,
       approvalId,
+      taskId: task?.id,
     };
+    if (task) task.decisionIds.push(decision.id);
     // L3+ autonomous actions are sampled for post-hoc audit (~20%, plan 3.4).
     // Deterministic hash of the decision id keeps it reproducible and testable.
     if (guard.verdict === "ALLOW" && rec && rec.level >= 3) {
@@ -525,6 +552,153 @@ export class MemoryGovernanceStore implements GovernanceStore {
     return this.decisions.slice(-limit).reverse();
   }
 
+  // ---- Workflow v2: task sessions -----------------------------------------
+
+  startTask(input: { agentId: string; title: string; scope: string[] }): {
+    ok: boolean;
+    task?: TaskRecord;
+    error?: string;
+  } {
+    const agent = this.getAgent(input.agentId);
+    if (!agent || !agent.assignedSeatId) return { ok: false, error: "AGENT_NOT_SEATED" };
+    if (agent.status === "FIRED") return { ok: false, error: "AGENT_FIRED" };
+    const open = this.tasks.filter((t) => t.agentId === input.agentId && !t.endedAt);
+    if (open.length >= 3) return { ok: false, error: "TOO_MANY_OPEN_TASKS" };
+    const task: TaskRecord = {
+      id: this.nextId("task"),
+      agentId: agent.id,
+      agentName: agent.name,
+      title: input.title.slice(0, 200),
+      scope: Array.from(new Set(input.scope)).slice(0, 50),
+      startedAt: new Date().toISOString(),
+      decisionIds: [],
+      reads: [],
+    };
+    this.tasks.push(task);
+    if (this.tasks.length > 200) this.tasks = this.tasks.slice(-200);
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId: agent.id,
+      agentName: agent.name,
+      department: agent.department,
+      system: "QwenWork Core",
+      outcome: "ALLOWED",
+      title: `Task started: ${task.title}`,
+      detail: `Task ${task.id} · declared scope: ${task.scope.join(", ") || "(none)"}`,
+    });
+    this.persist();
+    return { ok: true, task };
+  }
+
+  endTask(taskId: string, summary?: string): {
+    ok: boolean;
+    task?: TaskRecord;
+    unreported?: string[];
+    error?: string;
+  } {
+    const task = this.tasks.find((t) => t.id === taskId);
+    if (!task) return { ok: false, error: "UNKNOWN_TASK" };
+    if (task.endedAt) return { ok: false, error: "TASK_ALREADY_ENDED" };
+    task.endedAt = new Date().toISOString();
+    task.summary = summary?.slice(0, 1000);
+    const unreported = task.decisionIds.filter((id) => {
+      const d = this.decisions.find((x) => x.id === id);
+      return d && d.guard.verdict === "ALLOW" && !d.outcomeReported;
+    });
+    const outOfScope = task.reads.filter((r) => !r.inScope).length;
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId: task.agentId,
+      agentName: task.agentName,
+      department: this.getAgent(task.agentId)?.department ?? "QwenWork Ops",
+      system: "QwenWork Core",
+      outcome: unreported.length > 0 || outOfScope > 0 ? "RBAC_OVERRIDE" : "ALLOWED",
+      title: `Task ended: ${task.title}`,
+      detail:
+        `Task ${task.id} · ${task.decisionIds.length} checks, ${task.reads.length} reads` +
+        (outOfScope ? `, ${outOfScope} out-of-scope reads` : "") +
+        (unreported.length ? `, ${unreported.length} ALLOWED actions with NO outcome reported` : "") +
+        (task.summary ? ` · summary: ${task.summary}` : ""),
+    });
+    this.persist();
+    return { ok: true, task, unreported };
+  }
+
+  getTasks(agentId?: string): TaskRecord[] {
+    const list = agentId ? this.tasks.filter((t) => t.agentId === agentId) : this.tasks;
+    return [...list].reverse();
+  }
+
+  logAccess(input: {
+    agentId: string;
+    resource: string;
+    purpose?: string;
+    sensitivity?: "public" | "internal" | "client-confidential" | "regulated";
+    inScope?: boolean;
+    taskId?: string;
+  }): { logged: boolean; seq: number; inScope: boolean; warning: string | null } {
+    const agent = this.getAgent(input.agentId);
+    // Server computes scope membership when a task is declared — the caller's
+    // claim is never trusted over the declared scope.
+    let inScope = input.inScope !== false;
+    const task = input.taskId ? this.tasks.find((t) => t.id === input.taskId) : undefined;
+    if (task && !task.endedAt && task.agentId === input.agentId) {
+      inScope = task.scope.includes(input.resource);
+      task.reads.push({
+        resource: input.resource,
+        sensitivity: input.sensitivity,
+        inScope,
+        at: new Date().toISOString(),
+      });
+    }
+    const warning =
+      input.sensitivity === "regulated" && !inScope
+        ? "Out-of-scope regulated read recorded as a violation. It will appear in the owner's briefing."
+        : !inScope
+        ? "Out-of-scope read recorded. It will appear in the owner's briefing."
+        : null;
+    const chained = this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId: input.agentId,
+      agentName: agent?.name ?? input.agentId,
+      department: agent?.department ?? "QwenWork Ops",
+      system: "QwenWork Core",
+      outcome: "ALLOWED",
+      title: `Data access: ${input.resource}`,
+      detail:
+        `${input.sensitivity ?? "unlabeled"} read${!inScope ? " — OUT OF SCOPE for the task" : ""}` +
+        (input.purpose ? ` Purpose: ${input.purpose}` : "") +
+        (task ? ` (task ${task.id})` : ""),
+    });
+    this.persist();
+    return { logged: true, seq: chained.seq, inScope, warning };
+  }
+
+  /** Dry-run: full pipeline, zero trust/approval/metric effects, chained for transparency. */
+  async preflight(action: GuardAction, judge?: JudgeFn): Promise<{ guard: GuardResult; remediation: string[] }> {
+    const agent = this.getAgent(action.agentId);
+    const guard = await runGuardPipeline(action, this.contextFor(agent, action), {
+      registry: this.state.registry,
+      judge,
+    });
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId: action.agentId,
+      agentName: agent?.name ?? action.agentId,
+      department: agent?.department ?? "QwenWork Ops",
+      system: "QwenWork Core",
+      outcome: "ALLOWED",
+      title: `Preflight (dry-run): ${action.actionType} → ${guard.verdict}`,
+      detail: `No trust effects. ${guard.reasons.join(" ").slice(0, 300)}`,
+    });
+    this.persist();
+    return { guard, remediation: remediationFor(guard) };
+  }
+
   getMetrics(): MetricsSnapshot {
     const sorted = [...this.latencies].sort((a, b) => a - b);
     return {
@@ -545,6 +719,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.audit = [];
     this.approvals = [];
     this.decisions = [];
+    this.tasks = [];
     this.latencies = [];
     this.counters = { evaluated: 0, allowed: 0, leaksBlocked: 0, violations: { LOW: 0, HIGH: 0, CRITICAL: 0 } };
     this.persist();
@@ -556,6 +731,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
       audit: this.audit,
       approvals: this.approvals,
       decisions: this.decisions,
+      tasks: this.tasks,
       latencies: this.latencies,
       counters: this.counters,
       chainVersion: 2,
@@ -567,6 +743,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.audit = snap.audit;
     this.approvals = snap.approvals;
     this.decisions = snap.decisions ?? [];
+    this.tasks = snap.tasks ?? [];
     this.latencies = snap.latencies;
     this.counters = snap.counters;
     // One-time format migration: pre-v2 chains were hashed with insertion-order

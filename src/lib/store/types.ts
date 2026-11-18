@@ -82,6 +82,26 @@ export interface DecisionRecord {
   outcomeReported?: boolean;
   /** L3+ autonomous action selected for post-hoc sampled audit (~20%). */
   sampled?: boolean;
+  /** Task session this decision belongs to (workflow v2). */
+  taskId?: string;
+}
+
+/**
+ * A task session (workflow v2): the agent declares intent + scope up front;
+ * reads and checks are linked to it; the server computes scope membership;
+ * ending the task surfaces any allowed-but-unreported work.
+ */
+export interface TaskRecord {
+  id: string;
+  agentId: string;
+  agentName: string;
+  title: string;
+  scope: string[];
+  startedAt: string;
+  endedAt?: string;
+  summary?: string;
+  decisionIds: string[];
+  reads: { resource: string; sensitivity?: string; inScope: boolean; at: string }[];
 }
 
 export interface AgentFile {
@@ -117,5 +137,17 @@ export interface GovernanceStore {
   getBoardCase(agentId: string): BoardReviewCase | undefined;
   getMetrics(): MetricsSnapshot;
   getDecisions(limit?: number): DecisionRecord[];
+  startTask(input: { agentId: string; title: string; scope: string[] }): { ok: boolean; task?: TaskRecord; error?: string };
+  endTask(taskId: string, summary?: string): { ok: boolean; task?: TaskRecord; unreported?: string[]; error?: string };
+  getTasks(agentId?: string): TaskRecord[];
+  logAccess(input: {
+    agentId: string;
+    resource: string;
+    purpose?: string;
+    sensitivity?: "public" | "internal" | "client-confidential" | "regulated";
+    inScope?: boolean;
+    taskId?: string;
+  }): { logged: boolean; seq: number; inScope: boolean; warning: string | null };
+  preflight(action: GuardAction, judge?: JudgeFn): Promise<{ guard: GuardResult; remediation: string[] }>;
   reset(): void;
 }

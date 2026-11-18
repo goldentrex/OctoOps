@@ -66,6 +66,8 @@ export interface GuardAction {
   actionType: GuardActionType;
   targetSystem: GuardTargetSystem;
   capability?: string;
+  /** Task session this action belongs to (workflow v2). */
+  taskId?: string;
   recipientTenant?: string;
   recipientEmail?: string;
   attachments?: LabeledSource[];
