@@ -58,6 +58,8 @@ export interface StoreSnapshot {
     leaksBlocked: number;
     violations: Record<Severity, number>;
   };
+  /** 2 = canonical-JSON hashing (key-order invariant, jsonb-safe). */
+  chainVersion?: number;
 }
 
 function percentile(sorted: number[], p: number): number {
@@ -501,6 +503,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
       decisions: this.decisions,
       latencies: this.latencies,
       counters: this.counters,
+      chainVersion: 2,
     };
   }
 
@@ -511,6 +514,18 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.decisions = snap.decisions ?? [];
     this.latencies = snap.latencies;
     this.counters = snap.counters;
+    // One-time format migration: pre-v2 chains were hashed with insertion-order
+    // JSON, which databases (jsonb) reorder on storage. Re-chain the preserved
+    // event payloads with canonical hashing. Payloads are never altered.
+    if (snap.chainVersion !== 2 && this.audit.length > 0) {
+      const rebuilt: ChainedAuditEvent[] = [];
+      let prev: ChainedAuditEvent | null = null;
+      for (const entry of this.audit) {
+        prev = chainEvent(prev, entry.event);
+        rebuilt.push(prev);
+      }
+      this.audit = rebuilt;
+    }
     // Re-link shared per-seat error budgets after JSON round-trip.
     for (const [agentId, byCap] of Object.entries(this.state.records)) {
       const budget = this.state.budgets[agentId];
