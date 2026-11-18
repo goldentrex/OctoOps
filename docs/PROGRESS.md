@@ -123,6 +123,25 @@ No-key smoke: board → SCRIPTED with full transcript; guard → deterministic v
 
 ---
 
+# Post-workshop update (18 Nov, session 5)
+
+## Agentic workflow v2 — DONE, live (V8), full run 29/29
+- **Task sessions**: octoguard_start_task / octoguard_end_task; intent + scope declared up front;
+  reads and checks linked; max 3 open tasks/agent; fail-closed validation of closed/foreign tasks;
+  ending a task surfaces ALLOWED-but-unreported work to the owner (briefing + audit).
+- **Server-computed scope**: log_access with taskId ignores caller inScope claims; out-of-scope
+  regulated reads are violations (proven live: false claim overridden).
+- **Preflight dry-run**: octoguard_preflight — full pipeline, zero trust/approval/metric effects,
+  chained for transparency; remediation hints included. Final check still required before execution.
+- **Remediation + nextStep**: every BLOCK/HOLD carries stage-specific fixes and a structured next
+  step (fix the work, never the wording).
+- **Founder audit queue**: sampled L3+ decisions appear in the Founder's Desk (confirm clean /
+  flag issue → decision-linked outcome reports). Engine Room gains a Task sessions timeline panel.
+- REST: /api/tasks, /api/tasks/start, /api/tasks/:id/end, /api/guard/preflight. MCP now 9 tools.
+- Skill + AGENTIC_FLOW.md rewritten around the v2 loop. 191 tests. Full run v2: 29/29 live steps.
+
+---
+
 # Post-workshop update (18 Nov, session 4)
 
 ## Scoring integrity + full live run — DONE
