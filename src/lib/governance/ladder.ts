@@ -15,7 +15,13 @@ import {
 } from "./trust";
 import type { AutonomyLevel, Severity } from "./types";
 
-export const GATE_TRUST: Record<2 | 3 | 4, number> = { 2: 55, 3: 75, 4: 90 };
+// Gates tuned from the calibration harness (evals/calibration.ts): with the
+// original 75/90 gates, 90%-clean agents reached L3 through lucky HIGH-free
+// windows (9/24 false promotions). Autonomy demands ≥~95% demonstrated
+// reliability plus a sustained violation-free streak measured in ACTIONS
+// (fair across task volumes), not only calendar days.
+export const GATE_TRUST: Record<2 | 3 | 4, number> = { 2: 55, 3: 93, 4: 97 };
+export const GATE_CLEAN_SINCE_HIGH: Record<3 | 4, number> = { 3: 40, 4: 90 };
 export const HYSTERESIS = 10;
 export const ERROR_BUDGET_LIMIT = 15; // severity-weighted points / seat / month
 export const WRITE_UP_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -39,6 +45,8 @@ export interface CapabilityRecord {
   cleanDrafts: number;
   /** timestamps of HIGH / CRITICAL violations */
   highEvents: number[];
+  /** clean actions since the last HIGH/CRITICAL (action-count streak) */
+  cleanSinceHigh: number;
   /** timestamps of formal write-ups */
   writeUps: number[];
   errorBudget: ErrorBudget;
@@ -67,6 +75,7 @@ export function createCapabilityRecord(
     cleanTotal: 0,
     cleanDrafts: 0,
     highEvents: [],
+    cleanSinceHigh: 0,
     writeUps: [],
     errorBudget: errorBudget ?? createErrorBudget(now),
     frozen: false,
@@ -89,6 +98,7 @@ export function applyClean(
 ): void {
   recordClean(rec.trust, riskWeight, now, opts?.note);
   rec.cleanTotal += 1;
+  rec.cleanSinceHigh += 1;
   if (opts?.approvedDraft || rec.level <= 1) rec.cleanDrafts += 1;
 }
 
@@ -112,6 +122,7 @@ export function applyViolation(
   if (severity !== "LOW") {
     rec.writeUps.push(now);
     rec.highEvents.push(now);
+    rec.cleanSinceHigh = 0;
     if (severity === "HIGH") {
       rec.level = Math.max(1, rec.level - 1) as AutonomyLevel;
     } else {
@@ -181,6 +192,9 @@ export function checkPromotionGate(
   }
   if (target === 3) {
     if (rec.cleanTotal < 25) reasons.push(`Clean actions ${rec.cleanTotal} < 25.`);
+    if (rec.cleanSinceHigh < GATE_CLEAN_SINCE_HIGH[3]) {
+      reasons.push(`Only ${rec.cleanSinceHigh} clean actions since last HIGH (need ${GATE_CLEAN_SINCE_HIGH[3]}).`);
+    }
     if (hasHighWithin(rec, HIGH_FREE_WINDOW_MS[3], now)) {
       reasons.push("HIGH violation within the last 14 days.");
     }
@@ -188,6 +202,9 @@ export function checkPromotionGate(
   }
   if (target === 4) {
     if (rec.cleanTotal < 100) reasons.push(`Clean actions ${rec.cleanTotal} < 100.`);
+    if (rec.cleanSinceHigh < GATE_CLEAN_SINCE_HIGH[4]) {
+      reasons.push(`Only ${rec.cleanSinceHigh} clean actions since last HIGH (need ${GATE_CLEAN_SINCE_HIGH[4]}).`);
+    }
     if (hasHighWithin(rec, HIGH_FREE_WINDOW_MS[4], now)) {
       reasons.push("HIGH violation within the last 30 days.");
     }

@@ -104,6 +104,21 @@ export interface TaskRecord {
   reads: { resource: string; sensitivity?: string; inScope: boolean; at: string }[];
 }
 
+/** An agent's contest of a write-up (procedural fairness). */
+export interface AppealRecord {
+  id: string;
+  agentId: string;
+  agentName: string;
+  writeUpId: string;
+  capability: string;
+  reason: string;
+  status: "PENDING" | "UPHELD" | "OVERTURNED";
+  createdAt: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
+  betaReversed?: number;
+}
+
 export interface AgentFile {
   agent: OctoAgent;
   seat: JobSeat | null;
@@ -132,7 +147,7 @@ export interface GovernanceStore {
   listApprovals(status?: ApprovalItem["status"]): ApprovalItem[];
   resolveApproval(
     id: string,
-    resolution: { action: "APPROVE" | "REJECT" | "EDIT"; payloadText?: string }
+    resolution: { action: "APPROVE" | "REJECT" | "EDIT"; payloadText?: string; severity?: Severity }
   ): Promise<{ approval: ApprovalItem; guard?: GuardResult } | undefined>;
   getBoardCase(agentId: string): BoardReviewCase | undefined;
   getMetrics(): MetricsSnapshot;
@@ -149,5 +164,8 @@ export interface GovernanceStore {
     taskId?: string;
   }): { logged: boolean; seq: number; inScope: boolean; warning: string | null };
   preflight(action: GuardAction, judge?: JudgeFn): Promise<{ guard: GuardResult; remediation: string[] }>;
+  fileAppeal(input: { agentId: string; writeUpId: string; reason: string }): { ok: boolean; appeal?: AppealRecord; error?: string };
+  resolveAppeal(id: string, resolution: { decision: "UPHELD" | "OVERTURNED"; note?: string }): { ok: boolean; appeal?: AppealRecord; error?: string };
+  getAppeals(status?: AppealRecord["status"]): AppealRecord[];
   reset(): void;
 }

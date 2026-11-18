@@ -51,6 +51,8 @@ export const outcomeSchema = z.object({
 export const approvalResolutionSchema = z.object({
   action: z.enum(["APPROVE", "REJECT", "EDIT"]),
   payloadText: z.string().max(20000).optional(),
+  /** How bad was the rejected draft? Feeds the trust model proportionally. */
+  severity: z.enum(["LOW", "HIGH", "CRITICAL"]).optional(),
 });
 
 export const boardDeliberateSchema = z.object({
@@ -76,4 +78,15 @@ export const logAccessSchema = z.object({
   sensitivity: z.enum(["public", "internal", "client-confidential", "regulated"]).optional(),
   inScope: z.boolean().optional(),
   taskId: z.string().min(1).optional(),
+});
+
+export const fileAppealSchema = z.object({
+  agentId: z.string().min(1),
+  writeUpId: z.string().min(1),
+  reason: z.string().min(1).max(1000),
+});
+
+export const resolveAppealSchema = z.object({
+  decision: z.enum(["UPHELD", "OVERTURNED"]),
+  note: z.string().max(1000).optional(),
 });

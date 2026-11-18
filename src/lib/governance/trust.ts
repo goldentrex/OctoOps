@@ -32,7 +32,7 @@ const CAUGHT_BY_MULTIPLIER: Record<CaughtBy, number> = {
 export interface TrustEvidence {
   id: string;
   timestamp: number;
-  kind: "clean" | "violation";
+  kind: "clean" | "violation" | "appeal";
   note: string;
   alphaDelta: number;
   betaDelta: number;
@@ -129,6 +129,32 @@ export function recordViolation(
     betaDelta: delta,
     severity,
     caughtBy,
+  });
+  return state;
+}
+
+/**
+ * Reverse a violation penalty after a successful appeal (procedural fairness).
+ * The reversal is itself evidence — auditable, never silent. Beta floors at the prior.
+ */
+export function reverseViolation(
+  state: TrustState,
+  betaDelta: number,
+  now: number,
+  note = "Appeal overturned"
+): TrustState {
+  const decayed = decayTrust(state, now);
+  Object.assign(state, decayed);
+  const reversed = Math.min(betaDelta, state.beta - TRUST_PRIOR.beta);
+  state.beta -= reversed;
+  state.updatedAt = now;
+  pushEvidence(state, {
+    id: `ev-${++evidenceCounter}`,
+    timestamp: now,
+    kind: "appeal",
+    note,
+    alphaDelta: 0,
+    betaDelta: -reversed,
   });
   return state;
 }

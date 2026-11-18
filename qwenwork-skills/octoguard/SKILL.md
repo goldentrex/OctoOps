@@ -57,7 +57,10 @@ Every outbound action is governed by OctoGuard through the `octoguard` MCP serve
    CORRECTED, or VIOLATION. Never claim CLEAN for work you did not execute.
 7. **Close the task** — call `octoguard_end_task` with a plain-language summary. If it lists
    unreported ALLOWED actions, report their outcomes first. Unreported work is flagged to the owner.
-8. **Grow** — clean approved drafts accumulate toward L2; 25 clean actions + board vote → L3.
+8. **Appeal if wronged** — if a write-up is factually wrong (e.g. a mislabeled export), call
+   `octohr_appeal_writeup` with the writeUpId and a factual reason. Never fabricate an appeal;
+   the founder reviews it and an overturned appeal reverses the penalty visibly.
+9. **Grow** — clean approved drafts accumulate toward L2; sustained clean work + board vote → L3.
    Check your gate with `octohr_get_my_file`, then `octohr_request_promotion` when eligible.
    At L3+, ~20% of your autonomous actions are sampled for the founder's post-hoc audit —
    expect review requests and answer them with outcome reports.

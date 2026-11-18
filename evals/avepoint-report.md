@@ -1,6 +1,6 @@
 # AvePoint Starter-Kit Scorecard (Lumen Studio)
 
-Generated: 2026-11-18T04:03:30.161Z
+Generated: 2026-11-18T06:21:11.927Z
 
 **File classifier:** 27/27 correct (100.0%) against ground_truth_labels.json
 

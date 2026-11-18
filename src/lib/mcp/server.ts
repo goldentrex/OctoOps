@@ -10,6 +10,7 @@ import { z } from "zod";
 import {
   boardDeliberateSchema,
   endTaskSchema,
+  fileAppealSchema,
   guardActionSchema,
   logAccessSchema,
   outcomeSchema,
@@ -213,6 +214,19 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
         note: "No trust effects. Run octoguard_check_action before executing.",
       });
     }
+  );
+
+  server.registerTool(
+    "octohr_appeal_writeup",
+    {
+      description:
+        "Contest a write-up you believe is wrong (procedural fairness). Provide the writeUpId " +
+        "from your trust file and a factual reason. The founder/board reviews it; if overturned, " +
+        "the exact Beta penalty is reversed and the write-up removed — visibly, in the audit chain. " +
+        "One appeal per write-up; appeals never block or delay other work.",
+      inputSchema: fileAppealSchema.shape,
+    },
+    async (args) => json(store.fileAppeal(args))
   );
 
   server.registerTool(

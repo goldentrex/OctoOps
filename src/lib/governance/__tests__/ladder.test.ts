@@ -43,8 +43,8 @@ describe("autonomy ladder", () => {
     expect(rec.level).toBe(2);
   });
 
-  it("L3 gate needs 25 clean, trust >= 75 and a board vote", () => {
-    const rec = cleanRecord(25, 12);
+  it("L3 gate needs 25 clean, trust >= 93, a 40-action HIGH-free streak and a board vote", () => {
+    const rec = cleanRecord(45, 12);
     tryPromote(rec, T0, { boardApproved: false }); // -> L2
     const noBoard = checkPromotionGate(rec, T0);
     expect(noBoard.eligible).toBe(false);
@@ -66,7 +66,7 @@ describe("autonomy ladder", () => {
     expect(gate.reasons.join(" ")).toContain("14 days");
   });
 
-  it("L4 gate needs 100 clean, trust >= 90, board vote and no CISO veto", () => {
+  it("L4 gate needs 100 clean, trust >= 97, board vote and no CISO veto", () => {
     const rec = cleanRecord(100, 12);
     tryPromote(rec, T0, { boardApproved: false });
     tryPromote(rec, T0, { boardApproved: true });
@@ -80,7 +80,7 @@ describe("autonomy ladder", () => {
   });
 
   it("HIGH violation instantly drops one level (circuit breaker)", () => {
-    const rec = cleanRecord(30, 12);
+    const rec = cleanRecord(45, 12);
     tryPromote(rec, T0, { boardApproved: false });
     tryPromote(rec, T0, { boardApproved: true });
     expect(rec.level).toBe(3);
@@ -90,7 +90,7 @@ describe("autonomy ladder", () => {
   });
 
   it("CRITICAL violation drops to L1 and opens a tribunal", () => {
-    const rec = cleanRecord(30, 12);
+    const rec = cleanRecord(45, 12);
     tryPromote(rec, T0, { boardApproved: false });
     tryPromote(rec, T0, { boardApproved: true });
     const out = applyViolation(rec, "CRITICAL", "guard", T0);
@@ -99,7 +99,7 @@ describe("autonomy ladder", () => {
   });
 
   it("LOW violation does not demote", () => {
-    const rec = cleanRecord(30, 12);
+    const rec = cleanRecord(45, 12);
     tryPromote(rec, T0, { boardApproved: false });
     tryPromote(rec, T0, { boardApproved: true });
     const out = applyViolation(rec, "LOW", "guard", T0);
