@@ -914,7 +914,6 @@ export class MemoryGovernanceStore implements GovernanceStore {
         rec.errorBudget = budget;
         if (typeof rec.cleanSinceHigh !== "number") rec.cleanSinceHigh = rec.cleanTotal ?? 0;
         if (!rec.changepoint) {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
           rec.changepoint = createChangepointState();
         }
       }
