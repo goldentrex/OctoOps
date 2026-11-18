@@ -9,6 +9,22 @@ import type { GovernanceAuditEvent } from "../../types/octo";
 
 export const GENESIS_HASH = "0".repeat(64);
 
+/**
+ * Canonical JSON: object keys sorted recursively. Hashing must be invariant
+ * to key order because databases (e.g. PostgreSQL jsonb) reorder keys on
+ * storage — insertion-order JSON would break the chain on reload.
+ */
+export function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys
+    .filter((k) => obj[k] !== undefined)
+    .map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`)
+    .join(",")}}`;
+}
+
 export interface ChainedAuditEvent {
   seq: number;
   prevHash: string;
@@ -18,7 +34,7 @@ export interface ChainedAuditEvent {
 
 export function hashEvent(prevHash: string, event: GovernanceAuditEvent): string {
   return createHash("sha256")
-    .update(prevHash + JSON.stringify(event))
+    .update(prevHash + canonicalJson(event))
     .digest("hex");
 }
 

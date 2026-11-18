@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chainEvent, verifyChain, GENESIS_HASH } from "../audit";
+import { chainEvent, verifyChain, GENESIS_HASH, canonicalJson, hashEvent } from "../audit";
 import type { GovernanceAuditEvent } from "../../../types/octo";
 
 function event(i: number): GovernanceAuditEvent {
@@ -61,5 +61,25 @@ describe("hash-chained audit", () => {
     const chain = buildChain(5);
     [chain[1], chain[2]] = [chain[2], chain[1]];
     expect(verifyChain(chain).valid).toBe(false);
+  });
+
+  it("hashing is invariant to object key order (jsonb-safe)", () => {
+    const a = event(0);
+    const reordered = Object.fromEntries(
+      Object.entries(a).sort(([x], [y]) => (x < y ? 1 : -1))
+    ) as GovernanceAuditEvent;
+    expect(canonicalJson(a)).toBe(canonicalJson(reordered));
+    expect(hashEvent(GENESIS_HASH, a)).toBe(hashEvent(GENESIS_HASH, reordered));
+  });
+
+  it("chain survives a key-reordering JSON round-trip", () => {
+    const chain = buildChain(3);
+    const roundTripped = chain.map((e) => ({
+      ...e,
+      event: Object.fromEntries(
+        Object.entries(e.event).sort(([x], [y]) => (x < y ? 1 : -1))
+      ) as GovernanceAuditEvent,
+    }));
+    expect(verifyChain(roundTripped).valid).toBe(true);
   });
 });

@@ -147,6 +147,23 @@ describe("MemoryGovernanceStore", () => {
 });
 
 describe("FileGovernanceStore", () => {
+  it("migrates pre-v2 chains to canonical hashing on hydrate", async () => {
+    const store = new MemoryGovernanceStore();
+    await store.evaluate(leakAction());
+    const snap = JSON.parse(JSON.stringify(store.serialize()));
+    // simulate an old snapshot: no chainVersion, key-reordered events (jsonb)
+    delete snap.chainVersion;
+    snap.audit = snap.audit.map((e: { event: Record<string, unknown> }) => ({
+      ...e,
+      event: Object.fromEntries(Object.entries(e.event).sort(([x], [y]) => (x < y ? 1 : -1))),
+    }));
+    const restored = MemoryGovernanceStore.fromSnapshot(snap);
+    expect(restored.verifyAudit().valid).toBe(true);
+    expect(restored.listAudit()[0].event.title).toBe(store.listAudit()[0].event.title);
+    // re-serializing marks the new version
+    expect(restored.serialize().chainVersion).toBe(2);
+  });
+
   it("persists and rehydrates state across instances", async () => {
     const path = join(tmpdir(), `octoguard-test-${Date.now()}.json`);
     try {
