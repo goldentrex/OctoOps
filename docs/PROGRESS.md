@@ -123,6 +123,22 @@ No-key smoke: board → SCRIPTED with full transcript; guard → deterministic v
 
 ---
 
+# Post-workshop update (18 Nov, session 6)
+
+## Scoring fairness & validity — MEASURED, tuned, hardened (V9 live)
+- **Calibration harness** (evals/calibration.ts, npm run eval:calibration): 48 simulated careers
+  through the REAL engine. Results: AUC 0.951; conservative in all 4 cohorts (score ≤ true forward
+  clean rate); 0 false demotions of good agents; ≤10% forward-validated false-promotion operating
+  point; 0.07% detected post-promotion violations; 0.15% residual undetected (documented, mitigated
+  by sampled audits); recovery median 68 actions; gaming resistance verified.
+- **Data-driven tuning**: gates L3 75→93, L4 90→97; added action-count HIGH-free streaks (40/90);
+  fixed selection bias via severity-proportional draft rejection. Harness assertions are a CI quality bar.
+- **Appeals** (procedural fairness): octohr_appeal_writeup + /api/appeals; overturn reverses the exact
+  Beta penalty visibly (reverseViolation evidence + chained event), removes write-up; verified live.
+- docs/SCORING_VALIDATION.md (framework + numbers + limits). 196 tests. MCP now 10 tools.
+
+---
+
 # Post-workshop update (18 Nov, session 5)
 
 ## Agentic workflow v2 — DONE, live (V8), full run 29/29
