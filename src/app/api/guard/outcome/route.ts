@@ -10,9 +10,10 @@ export async function POST(req: NextRequest) {
   if ("response" in parsed) return parsed.response;
   const result = getStore().reportOutcome(parsed.data);
   if (!result.ok) {
+    const status = result.error === "UNKNOWN_AGENT" || result.error === "NO_CAPABILITY" ? 404 : 422;
     return NextResponse.json(
-      { error: "NOT_FOUND", message: "Unknown agent or capability." },
-      { status: 404 }
+      { error: result.error ?? "REJECTED", message: "Outcome rejected by scoring-integrity rules." },
+      { status }
     );
   }
   return NextResponse.json(result);

@@ -73,8 +73,10 @@ export function buildOctoGuardMcpServer(store: GovernanceStore, judge?: JudgeFn)
     {
       description:
         "Report the real-world outcome of an executed action so the trust model learns. " +
-        "CLEAN = completed without correction (earns trust). CORRECTED = founder had to fix it " +
-        "(small penalty). VIOLATION = a leak or policy breach discovered after the fact (severity-weighted penalty).",
+        "CLEAN = completed without correction; REQUIRES the decisionId returned by octoguard_check_action " +
+        "(the reward is tied to that checked action, weighted by its server-computed risk, and can only be claimed once). " +
+        "CORRECTED = founder had to fix it (small penalty). VIOLATION = a leak or policy breach discovered " +
+        "after the fact (severity-weighted penalty). Penalties are always accepted, with or without a decisionId.",
       inputSchema: outcomeSchema.shape,
     },
     async (args) => json(store.reportOutcome(args))

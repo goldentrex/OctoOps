@@ -38,6 +38,12 @@ export interface OutcomeReport {
   severity?: Severity;
   note?: string;
   riskWeight?: number;
+  /**
+   * Required for CLEAN: the decisionId returned by octoguard_check_action.
+   * Ties the reward to a real checked action (anti-farming) and lets the
+   * server set the risk weight instead of trusting the caller.
+   */
+  decisionId?: string;
 }
 
 export interface MetricsSnapshot {
@@ -72,6 +78,10 @@ export interface DecisionRecord {
   levelBefore: number;
   levelAfter: number;
   approvalId?: string;
+  /** An outcome has already been reported against this decision (anti-farming). */
+  outcomeReported?: boolean;
+  /** L3+ autonomous action selected for post-hoc sampled audit (~20%). */
+  sampled?: boolean;
 }
 
 export interface AgentFile {
@@ -89,7 +99,13 @@ export interface GovernanceStore {
   getAgentFile(id: string): AgentFile | undefined;
   getTenantRegistry(): TenantRegistry;
   evaluate(action: GuardAction, judge?: JudgeFn): Promise<EvaluateResponse>;
-  reportOutcome(report: OutcomeReport): { ok: boolean; trustScore?: number; openTribunal?: boolean };
+  reportOutcome(report: OutcomeReport): {
+    ok: boolean;
+    trustScore?: number;
+    openTribunal?: boolean;
+    engineScore?: number;
+    error?: string;
+  };
   listAudit(): ChainedAuditEvent[];
   appendAudit(event: GovernanceAuditEvent): ChainedAuditEvent;
   verifyAudit(): ChainVerification;

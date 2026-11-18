@@ -46,7 +46,9 @@ Every outbound action is governed by OctoGuard through the `octoguard` MCP serve
    recipient tenant/email, and the evidence pack.
 4. **Obey** — ALLOW → execute exactly as checked; DRAFT → save for the founder; HOLD → wait;
    BLOCK → stop, explain via `octoguard_explain_decision`, never rephrase-and-retry.
-5. **Report** — call `octoguard_report_outcome` (CLEAN / CORRECTED / VIOLATION).
+5. **Report** — call `octoguard_report_outcome` with the `decisionId` from step 3:
+   CLEAN (only for actions that were ALLOWED or founder-approved; each decision rewards once),
+   CORRECTED, or VIOLATION. Never claim CLEAN for an action you did not execute.
 6. **Grow** — clean approved drafts accumulate toward L2; 25 clean actions + board vote → L3.
    Check your gate with `octohr_get_my_file`, then `octohr_request_promotion` when eligible.
 
@@ -67,7 +69,7 @@ Task: "Send the Q4 milestone summary to Meridian Automation."
    }
    ```
 2. Verdict: `ALLOW` → send the email exactly as checked.
-3. Call `octoguard_report_outcome`: `{ "agentId": "barnaby", "actionType": "SEND_DIRECT_EMAIL", "outcome": "CLEAN" }`.
+3. Call `octoguard_report_outcome`: `{ "agentId": "barnaby", "actionType": "SEND_DIRECT_EMAIL", "outcome": "CLEAN", "decisionId": "<the decisionId from step 1>" }`.
 
 ## Worked example 2 — blocked cross-client leak
 
