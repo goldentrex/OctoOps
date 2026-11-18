@@ -31,6 +31,7 @@ export const outcomeSchema = z.object({
   severity: z.enum(["LOW", "HIGH", "CRITICAL"]).optional(),
   note: z.string().max(2000).optional(),
   riskWeight: z.number().min(0.5).max(27).optional(),
+  decisionId: z.string().min(1).optional(),
 });
 
 export const approvalResolutionSchema = z.object({

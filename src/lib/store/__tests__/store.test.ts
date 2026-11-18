@@ -96,13 +96,20 @@ describe("MemoryGovernanceStore", () => {
     expect(publish.trust.beta).toBeGreaterThan(3); // prior 3 + LOW x2 human
   });
 
-  it("feeds outcomes into the trust model", () => {
+  it("feeds outcomes into the trust model", async () => {
     const store = new MemoryGovernanceStore();
+    const checked = await store.evaluate({
+      agentId: "squidney",
+      actionType: "UPDATE_LEAD",
+      targetSystem: "HASHMETA_CRM",
+      payloadText: "clean update",
+    });
     const ok = store.reportOutcome({
       agentId: "squidney",
       actionType: "UPDATE_LEAD",
       outcome: "CLEAN",
       note: "Founder verified the lead update",
+      decisionId: checked.decisionId,
     });
     expect(ok.ok).toBe(true);
     const bad = store.reportOutcome({

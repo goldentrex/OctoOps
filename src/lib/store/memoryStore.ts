@@ -183,10 +183,9 @@ export class MemoryGovernanceStore implements GovernanceStore {
 
     if (guard.verdict === "ALLOW") {
       this.counters.allowed += 1;
-      if (agent && rec) {
-        applyClean(rec, guard.risk.score, Date.now(), { note: "Guarded action allowed" });
-        agent.trustScore = Math.min(99, agent.trustScore + guard.trustDelta);
-      }
+      // Scoring integrity: no trust credit at check time. The +2 in the guard
+      // result is a preview; credit is granted only when the outcome is
+      // confirmed CLEAN against this decision (or the founder approves a draft).
     } else if (guard.verdict === "BLOCK" && guard.severity) {
       if (guard.stage === "G2_CLIENT_WALL" || guard.stage === "G3_DLP") {
         this.counters.leaksBlocked += 1;
@@ -237,6 +236,27 @@ export class MemoryGovernanceStore implements GovernanceStore {
       levelAfter: rec?.level ?? levelBefore,
       approvalId,
     };
+    // L3+ autonomous actions are sampled for post-hoc audit (~20%, plan 3.4).
+    // Deterministic hash of the decision id keeps it reproducible and testable.
+    if (guard.verdict === "ALLOW" && rec && rec.level >= 3) {
+      let h = 0;
+      for (const ch of decision.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      if (h % 5 === 0) {
+        decision.sampled = true;
+        this.appendAudit({
+          id: this.nextId("evt"),
+          timestamp: new Date().toISOString(),
+          agentId: action.agentId,
+          agentName: agent?.name ?? action.agentId,
+          department: agent?.department ?? "QwenWork Ops",
+          system: "QwenWork Core",
+          outcome: "ALLOWED",
+          title: `Post-hoc audit sample (decision ${decision.id})`,
+          detail:
+            "L3+ autonomous action selected for sampled review. Founder confirms via outcome report (CLEAN) or flags CORRECTED/VIOLATION.",
+        });
+      }
+    }
     this.decisions.push(decision);
     if (this.decisions.length > 50) this.decisions.shift();
 
@@ -339,27 +359,57 @@ export class MemoryGovernanceStore implements GovernanceStore {
     };
   }
 
-  reportOutcome(report: OutcomeReport): { ok: boolean; trustScore?: number; openTribunal?: boolean } {
+  reportOutcome(report: OutcomeReport): {
+    ok: boolean;
+    trustScore?: number;
+    openTribunal?: boolean;
+    engineScore?: number;
+    error?: string;
+  } {
     const agent = this.getAgent(report.agentId);
-    if (!agent) return { ok: false };
+    if (!agent) return { ok: false, error: "UNKNOWN_AGENT" };
     const capability = CAPABILITY_BY_ACTION[report.actionType];
     const rec = this.recordFor(agent, capability);
-    if (!rec) return { ok: false };
+    if (!rec) return { ok: false, error: "NO_CAPABILITY" };
     const now = Date.now();
     let openTribunal = false;
 
+    // ---- Scoring integrity: rewards must be tied to a real checked action --
+    let linked: DecisionRecord | undefined;
+    if (report.decisionId) {
+      linked = this.decisions.find((d) => d.id === report.decisionId);
+      if (!linked) return { ok: false, error: "UNKNOWN_DECISION" };
+      if (linked.agentId !== report.agentId) return { ok: false, error: "DECISION_AGENT_MISMATCH" };
+      if (linked.action.actionType !== report.actionType) return { ok: false, error: "DECISION_ACTION_MISMATCH" };
+    }
+
     if (report.outcome === "CLEAN") {
-      applyClean(rec, report.riskWeight ?? 2, now, {
+      // CLEAN requires a linked decision that was ALLOWED (or a founder-approved
+      // draft), and each decision can only be rewarded once. The risk weight is
+      // set by the server from the checked action — never by the caller.
+      if (!linked) return { ok: false, error: "DECISION_REQUIRED" };
+      if (linked.outcomeReported) return { ok: false, error: "ALREADY_REPORTED" };
+      const approved =
+        linked.guard.verdict === "ALLOW" ||
+        (linked.approvalId !== undefined &&
+          this.approvals.some(
+            (a) => a.id === linked.approvalId && (a.status === "APPROVED" || a.status === "EDITED")
+          ));
+      if (!approved) return { ok: false, error: "DECISION_NOT_ALLOWED" };
+      linked.outcomeReported = true;
+      applyClean(rec, linked.guard.risk.score, now, {
         approvedDraft: true,
-        note: report.note ?? "Outcome reported clean",
+        note: report.note ?? `Outcome clean (decision ${linked.id})`,
       });
       agent.trustScore = Math.min(99, agent.trustScore + 2);
     } else {
+      // Penalties are never blocked: corrections and violations always accepted.
       const severity: Severity =
         report.outcome === "CORRECTED" ? "LOW" : report.severity ?? "HIGH";
       const outcome = applyViolation(rec, severity, "human", now, report.note);
       openTribunal = outcome.openTribunal;
       this.counters.violations[severity] += 1;
+      if (linked) linked.outcomeReported = true;
       const fakeGuard: GuardResult = {
         verdict: "BLOCK",
         stage: "G4_JUDGE",
@@ -383,12 +433,17 @@ export class MemoryGovernanceStore implements GovernanceStore {
       department: agent.department,
       system: "QwenWork Core",
       outcome: report.outcome === "CLEAN" ? "ALLOWED" : "WRITE_UP",
-      title: `Outcome reported: ${report.outcome}`,
+      title: `Outcome reported: ${report.outcome}${report.decisionId ? ` (decision ${report.decisionId})` : ""}`,
       detail: report.note ?? `${report.actionType} outcome fed to the trust model.`,
       trustDelta: report.outcome === "CLEAN" ? 2 : undefined,
     });
     this.persist();
-    return { ok: true, trustScore: agent.trustScore, openTribunal };
+    return {
+      ok: true,
+      trustScore: agent.trustScore,
+      openTribunal,
+      engineScore: trustScore(rec.trust, now),
+    };
   }
 
   listAudit(): ChainedAuditEvent[] {
