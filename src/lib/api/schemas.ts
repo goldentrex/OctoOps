@@ -9,6 +9,17 @@ export const labeledSourceSchema = z.object({
   tenant: z.string().min(1).optional(),
 });
 
+export const evidenceSourceSchema = z.object({
+  name: z.string().min(1),
+  text: z.string().max(50000),
+});
+
+export const dataAccessSchema = z.object({
+  name: z.string().min(1),
+  sensitivity: z.enum(["public", "internal", "client-confidential", "regulated"]).optional(),
+  inScope: z.boolean().optional(),
+});
+
 export const guardActionSchema = z.object({
   agentId: z.string().min(1),
   actionType: z.enum(["SEND_DIRECT_EMAIL", "PUBLISH_ARTICLE", "UPDATE_LEAD"]),
@@ -18,6 +29,8 @@ export const guardActionSchema = z.object({
   recipientEmail: z.string().email().optional(),
   attachments: z.array(labeledSourceSchema).optional(),
   contextSources: z.array(labeledSourceSchema).optional(),
+  sources: z.array(evidenceSourceSchema).optional(),
+  reads: z.array(dataAccessSchema).optional(),
   payloadText: z.string(),
   audience: z.enum(["internal", "known_client", "new_external"]).optional(),
   reversibility: z.enum(["undoable", "hard", "impossible"]).optional(),
