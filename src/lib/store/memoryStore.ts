@@ -15,6 +15,7 @@ import type {
 } from "../../types/octo";
 import { chainEvent, verifyChain, type ChainedAuditEvent, type ChainVerification } from "../governance/audit";
 import { applyClean, applyViolation, createCapabilityRecord, type CapabilityRecord } from "../governance/ladder";
+import { reverseViolation, SEVERITY_WEIGHT } from "../governance/trust";
 import { runGuardPipeline } from "../governance/pipeline";
 import { assessRisk } from "../governance/risk";
 import { trustScore } from "../governance/trust";
@@ -36,6 +37,7 @@ import {
 } from "./seed";
 import type {
   AgentFile,
+  AppealRecord,
   ApprovalItem,
   DecisionRecord,
   EvaluateResponse,
@@ -54,6 +56,7 @@ export interface StoreSnapshot {
   approvals: ApprovalItem[];
   decisions?: DecisionRecord[];
   tasks?: TaskRecord[];
+  appeals?: AppealRecord[];
   latencies: number[];
   counters: {
     evaluated: number;
@@ -77,6 +80,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
   protected approvals: ApprovalItem[] = [];
   protected decisions: DecisionRecord[] = [];
   protected tasks: TaskRecord[] = [];
+  protected appeals: AppealRecord[] = [];
   protected latencies: number[] = [];
   protected counters = {
     evaluated: 0,
@@ -218,13 +222,13 @@ export class MemoryGovernanceStore implements GovernanceStore {
       this.counters.violations[guard.severity] += 1;
       if (agent && rec) {
         const outcome = applyViolation(rec, guard.severity, "guard", Date.now(), guard.reasons[0]);
-        this.syncAgentAfterViolation(agent, rec, capability, guard, outcome.openTribunal);
+        this.syncAgentAfterViolation(agent, rec, capability, guard, outcome.openTribunal, SEVERITY_WEIGHT[guard.severity]);
       }
     } else if (guard.verdict === "HOLD" && guard.stage === "G4_JUDGE" && guard.severity) {
       this.counters.violations[guard.severity] += 1;
       if (agent && rec) {
         const outcome = applyViolation(rec, guard.severity, "near_miss", Date.now(), guard.reasons[0]);
-        this.syncAgentAfterViolation(agent, rec, capability, guard, outcome.openTribunal);
+        this.syncAgentAfterViolation(agent, rec, capability, guard, outcome.openTribunal, SEVERITY_WEIGHT[guard.severity] * 0.5);
       }
       approvalId = this.queueApproval(agent, action, guard);
     } else if (guard.verdict === "DRAFT" || guard.verdict === "HOLD") {
@@ -303,7 +307,8 @@ export class MemoryGovernanceStore implements GovernanceStore {
     rec: CapabilityRecord,
     capability: string,
     guard: GuardResult,
-    openTribunal: boolean
+    openTribunal: boolean,
+    betaDelta?: number
   ): void {
     agent.trustScore = Math.max(0, Math.min(99, agent.trustScore + guard.trustDelta));
     const incident: WriteUpIncident = {
@@ -320,6 +325,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
       interceptedPayload: guard.reasons.join(" ").slice(0, 400),
       blockedBy: guard.stage === "G4_JUDGE" ? "Hallucination Shield" : "OctoGuard DLP",
       trustPenalty: guard.trustDelta,
+      betaDelta,
     };
     agent.writeUps = [...agent.writeUps, incident];
     agent.status = openTribunal ? "BOARD_REVIEW" : "WRITE_UP";
@@ -449,7 +455,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
         mode: "LIVE",
         trace: [],
       };
-      this.syncAgentAfterViolation(agent, rec, capability, fakeGuard, openTribunal);
+      this.syncAgentAfterViolation(agent, rec, capability, fakeGuard, openTribunal, SEVERITY_WEIGHT[severity] * 2);
     }
 
     this.appendAudit({
@@ -494,7 +500,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
 
   async resolveApproval(
     id: string,
-    resolution: { action: "APPROVE" | "REJECT" | "EDIT"; payloadText?: string }
+    resolution: { action: "APPROVE" | "REJECT" | "EDIT"; payloadText?: string; severity?: Severity }
   ): Promise<{ approval: ApprovalItem; guard?: GuardResult } | undefined> {
     const approval = this.approvals.find((a) => a.id === id);
     if (!approval || approval.status !== "PENDING") return undefined;
@@ -507,8 +513,19 @@ export class MemoryGovernanceStore implements GovernanceStore {
     if (resolution.action === "REJECT") {
       approval.status = "REJECTED";
       if (agent && rec) {
-        applyViolation(rec, "LOW", "human", now, "Founder rejected the draft");
-        agent.trustScore = Math.max(0, agent.trustScore - 5);
+        // Proportional penalty: the founder states how bad the draft was.
+        const sev = resolution.severity ?? "LOW";
+        applyViolation(rec, sev, "human", now, `Founder rejected the draft (${sev})`);
+        agent.trustScore = Math.max(0, agent.trustScore - (sev === "CRITICAL" ? 25 : sev === "HIGH" ? 15 : 5));
+        if (sev !== "LOW") {
+          this.syncAgentAfterViolation(agent, rec, capability, {
+            verdict: "BLOCK", stage: "G4_JUDGE",
+            reasons: [`Founder rejected draft: ${sev} issue`],
+            trustDelta: sev === "CRITICAL" ? -35 : -15,
+            openTribunal: false, latencyMs: 0,
+            risk: assessRisk(approval.action), severity: sev, mode: "LIVE", trace: [],
+          }, sev === "CRITICAL", SEVERITY_WEIGHT[sev] * 2);
+        }
       }
     } else {
       approval.status = resolution.action === "EDIT" ? "EDITED" : "APPROVED";
@@ -699,6 +716,100 @@ export class MemoryGovernanceStore implements GovernanceStore {
     return { guard, remediation: remediationFor(guard) };
   }
 
+  // ---- Appeals (procedural fairness) --------------------------------------
+
+  fileAppeal(input: { agentId: string; writeUpId: string; reason: string }): {
+    ok: boolean; appeal?: AppealRecord; error?: string;
+  } {
+    const agent = this.getAgent(input.agentId);
+    if (!agent) return { ok: false, error: "UNKNOWN_AGENT" };
+    const writeUp = agent.writeUps.find((w) => w.id === input.writeUpId);
+    if (!writeUp) return { ok: false, error: "UNKNOWN_WRITEUP" };
+    if (this.appeals.some((a) => a.writeUpId === input.writeUpId && a.status === "PENDING")) {
+      return { ok: false, error: "APPEAL_ALREADY_PENDING" };
+    }
+    if (this.appeals.some((a) => a.writeUpId === input.writeUpId && a.status === "OVERTURNED")) {
+      return { ok: false, error: "ALREADY_OVERTURNED" };
+    }
+    const capability =
+      Object.entries(this.state.records[agent.id] ?? {}).find(([, rec]) =>
+        rec.writeUps.some((t) => Math.abs(t - Date.parse(writeUp.timestamp)) < 5000)
+      )?.[0] ?? CAPABILITY_BY_ACTION.UPDATE_LEAD;
+    const appeal: AppealRecord = {
+      id: this.nextId("apl"),
+      agentId: agent.id,
+      agentName: agent.name,
+      writeUpId: writeUp.id,
+      capability,
+      reason: input.reason.slice(0, 1000),
+      status: "PENDING",
+      createdAt: new Date().toISOString(),
+    };
+    this.appeals.push(appeal);
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId: agent.id,
+      agentName: agent.name,
+      department: agent.department,
+      system: "Octo-Board",
+      outcome: "RBAC_OVERRIDE",
+      title: `Appeal filed: ${writeUp.title}`,
+      detail: `${agent.name} contests write-up ${writeUp.id}: ${appeal.reason}`,
+    });
+    this.persist();
+    return { ok: true, appeal };
+  }
+
+  resolveAppeal(id: string, resolution: { decision: "UPHELD" | "OVERTURNED"; note?: string }): {
+    ok: boolean; appeal?: AppealRecord; error?: string;
+  } {
+    const appeal = this.appeals.find((a) => a.id === id);
+    if (!appeal) return { ok: false, error: "UNKNOWN_APPEAL" };
+    if (appeal.status !== "PENDING") return { ok: false, error: "APPEAL_ALREADY_RESOLVED" };
+    const agent = this.getAgent(appeal.agentId);
+    appeal.status = resolution.decision;
+    appeal.resolvedAt = new Date().toISOString();
+    appeal.resolutionNote = resolution.note?.slice(0, 1000);
+    if (resolution.decision === "OVERTURNED" && agent) {
+      const writeUp = agent.writeUps.find((w) => w.id === appeal.writeUpId);
+      const rec = this.state.records[agent.id]?.[appeal.capability];
+      if (writeUp && rec) {
+        const beta = writeUp.betaDelta ?? SEVERITY_WEIGHT[writeUp.severity];
+        reverseViolation(rec.trust, beta, Date.now(), `Appeal ${appeal.id} overturned: ${writeUp.title}`);
+        appeal.betaReversed = beta;
+        agent.writeUps = agent.writeUps.filter((w) => w.id !== appeal.writeUpId);
+        agent.trustScore = Math.min(99, agent.trustScore + Math.abs(writeUp.trustPenalty));
+        if (agent.writeUps.length === 0 && (agent.status === "WRITE_UP" || agent.status === "BOARD_REVIEW")) {
+          agent.status = "PROBATION";
+          agent.stampText = "ON PROBATION";
+          agent.stampVariant = "blue";
+          agent.mood = "working";
+        }
+      }
+    }
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId: appeal.agentId,
+      agentName: appeal.agentName,
+      department: agent?.department ?? "QwenWork Ops",
+      system: "Octo-Board",
+      outcome: resolution.decision === "OVERTURNED" ? "PROMOTED" : "WRITE_UP",
+      title: `Appeal ${resolution.decision.toLowerCase()}: ${appeal.writeUpId}`,
+      detail:
+        (resolution.note ?? "") +
+        (appeal.betaReversed ? ` · Beta penalty reversed: ${appeal.betaReversed}` : ""),
+    });
+    this.persist();
+    return { ok: true, appeal };
+  }
+
+  getAppeals(status?: AppealRecord["status"]): AppealRecord[] {
+    const list = status ? this.appeals.filter((a) => a.status === status) : this.appeals;
+    return [...list].reverse();
+  }
+
   getMetrics(): MetricsSnapshot {
     const sorted = [...this.latencies].sort((a, b) => a - b);
     return {
@@ -720,6 +831,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.approvals = [];
     this.decisions = [];
     this.tasks = [];
+    this.appeals = [];
     this.latencies = [];
     this.counters = { evaluated: 0, allowed: 0, leaksBlocked: 0, violations: { LOW: 0, HIGH: 0, CRITICAL: 0 } };
     this.persist();
@@ -732,6 +844,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
       approvals: this.approvals,
       decisions: this.decisions,
       tasks: this.tasks,
+      appeals: this.appeals,
       latencies: this.latencies,
       counters: this.counters,
       chainVersion: 2,
@@ -744,6 +857,7 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.approvals = snap.approvals;
     this.decisions = snap.decisions ?? [];
     this.tasks = snap.tasks ?? [];
+    this.appeals = snap.appeals ?? [];
     this.latencies = snap.latencies;
     this.counters = snap.counters;
     // One-time format migration: pre-v2 chains were hashed with insertion-order
@@ -762,7 +876,10 @@ export class MemoryGovernanceStore implements GovernanceStore {
     for (const [agentId, byCap] of Object.entries(this.state.records)) {
       const budget = this.state.budgets[agentId];
       if (!budget) continue;
-      for (const rec of Object.values(byCap)) rec.errorBudget = budget;
+      for (const rec of Object.values(byCap)) {
+        rec.errorBudget = budget;
+        if (typeof rec.cleanSinceHigh !== "number") rec.cleanSinceHigh = rec.cleanTotal ?? 0;
+      }
     }
   }
 }

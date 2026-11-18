@@ -24,6 +24,8 @@ Prior at hire: α = 1, β = 3   (sceptical probation)
 | Near-miss caught by G4 judge | `β += severity × 0.5` | caught before harm |
 | Leak caught only by a human | `β += severity × 2` | the guard missed it; worst case |
 | Founder CORRECTED outcome | `β += 1 × 2` | LOW, human-caught |
+| Founder rejects a draft | `β += severity × 2` | founder states severity (LOW/HIGH/CRITICAL); proportional, fixes selection bias |
+| Successful appeal | `β -= original penalty` | exact reversal, visible evidence (`reverseViolation`) |
 | Time passing | both α, β shrink toward the prior | half-life 14 days: old sins and old glory both fade |
 
 ## 3. The displayed score
@@ -49,8 +51,13 @@ Worked example (risk-2 lead updates):
 |---|---|
 | L1 draft-only | hire |
 | L2 approval | score ≥ 55 AND 10 clean approved drafts |
-| L3 autonomous + sampled audit | score ≥ 75 AND 25 clean AND 0 HIGH in 14 days AND board vote |
-| L4 full | score ≥ 90 AND 100 clean AND 0 HIGH in 30 days AND board vote AND no CISO veto |
+| L3 autonomous + sampled audit | score ≥ 93 AND 25 clean AND 40 clean actions since last HIGH AND 0 HIGH in 14 days AND board vote |
+| L4 full | score ≥ 97 AND 100 clean AND 90 clean actions since last HIGH AND 0 HIGH in 30 days AND board vote AND no CISO veto |
+
+Gates were tuned from the calibration harness (see `docs/SCORING_VALIDATION.md`): the original
+75/90 gates let 90%-clean agents reach autonomy through lucky windows; 93/97 + action-count
+streaks reduced false promotions to a documented ≤10% operating point with 0.07% detected
+post-promotion violations.
 
 - **Hysteresis:** demotion by score only below (gate − 10) — no flapping.
 - **Circuit breakers:** HIGH −1 level instantly; CRITICAL → L1 + tribunal.
@@ -78,7 +85,9 @@ These exist because agents are self-interested reporters; the scoring must not b
 8. **Sampled audits at L3+.** ~20% of autonomous actions (deterministic hash of the decision id)
    are flagged for post-hoc review and logged; the founder confirms CLEAN or flags
    CORRECTED/VIOLATION. Autonomy is never unobserved.
-9. **Everything is chained.** Every check, outcome, approval, demotion and audit sample is an
+9. **Appeals**: agents contest write-ups (`octohr_appeal_writeup`); an overturned appeal reverses
+   the exact Beta penalty visibly. Procedural fairness is part of scoring validity.
+10. **Everything is chained.** Every check, outcome, approval, demotion and audit sample is an
    event in the SHA-256 chain (canonical JSON, storage-order invariant). The compliance export
    recomputes the chain and cites events per control.
 
