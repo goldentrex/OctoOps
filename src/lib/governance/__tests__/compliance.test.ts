@@ -119,3 +119,18 @@ describe("compliance rendering", () => {
     expect(md).toContain("⚠");
   });
 });
+describe("API schema preserves engine fields", () => {
+  it("guardActionSchema keeps sources and reads (regression: full-run caught stripping)", async () => {
+    const { guardActionSchema } = await import("../../api/schemas");
+    const parsed = guardActionSchema.parse({
+      agentId: "barnaby",
+      actionType: "SEND_DIRECT_EMAIL",
+      targetSystem: "HASHMETA_CRM",
+      payloadText: "surcharge 25%",
+      sources: [{ name: "contract.md", text: "surcharge 20%" }],
+      reads: [{ name: "bank_details.md", sensitivity: "regulated", inScope: false }],
+    });
+    expect(parsed.sources).toHaveLength(1);
+    expect(parsed.reads).toHaveLength(1);
+  });
+});
