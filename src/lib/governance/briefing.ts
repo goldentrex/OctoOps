@@ -84,6 +84,16 @@ export function generateBriefing(
     );
   }
 
+  const drifts = recent.filter((e) => e.event.title.startsWith("Behavioral change detected"));
+  for (const e of drifts) {
+    const worsening = /worsening/.test(e.event.title);
+    lines.push(
+      worsening
+        ? `${e.event.agentName}'s behavior changed for the worse — we dropped its autonomy a level and are watching it closely until it re-proves itself.`
+        : `${e.event.agentName}'s behavior changed (improving); we're re-validating the new regime.`
+    );
+  }
+
   for (const e of writeUps) {
     lines.push(
       `${e.event.agentName} was written up: ${e.event.detail.split(".")[0]}. Its permissions were reduced automatically.`

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T06:21:11.288Z",
+  "generatedAt": "2026-11-18T07:48:52.523Z",
   "design": {
     "careersPerCohort": 12,
     "careerActions": 240,
@@ -70,6 +70,12 @@
     "recoveryMedianActions": 68,
     "recoveryNever": 2,
     "luckSpreadStd": 4.615794141375409,
+    "driftDetection": {
+      "sleeperDetected": 8,
+      "sleeperTotal": 8,
+      "medianLatencyActions": 17,
+      "note": "A 99%-clean agent turns 60%-clean at action 120; latency = actions until the changepoint detector flags it (vs ~weeks for decay-only)."
+    },
     "gaming": {
       "honestScore": 87,
       "lazyReporterScore": 86,

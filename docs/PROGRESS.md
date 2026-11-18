@@ -123,6 +123,18 @@ No-key smoke: board → SCRIPTED with full transcript; guard → deterministic v
 
 ---
 
+# Post-workshop update (18 Nov, session 7)
+
+## U3 changepoint detection — IMPLEMENTED, measured, live
+- changepoint.ts: Bayesian sequential change test (BOCPD family, Adams & MacKay) — recent-window
+  Beta posterior vs long-run baseline; detects change not badness.
+- Ladder integration: worsening → streak reset + one-level demotion + 100% sampling for 10 outcomes;
+  improving → re-validate. Chained audit event + owner briefing line + MCP trust-file drift field.
+- Measured: 8/8 sleeper agents (99%→60%) detected, median 17 actions; zero false alarms on stationary
+  streams; calibration quality bar unchanged (AUC 0.951, conservative all cohorts). 206 tests.
+
+---
+
 # Post-workshop update (18 Nov, session 6)
 
 ## Scoring fairness & validity — MEASURED, tuned, hardened (V9 live)
