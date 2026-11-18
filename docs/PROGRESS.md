@@ -123,6 +123,23 @@ No-key smoke: board → SCRIPTED with full transcript; guard → deterministic v
 
 ---
 
+# Post-workshop update (18 Nov, session 3)
+
+## P1 Compliance export — DONE, live
+- `src/lib/governance/compliance.ts` — maps the hash-chained audit log + decisions + trust register to:
+  - **IMDA MGF for Agentic AI v1.5** (published 20 May 2026, upd. 5 Jun 2026 — edition verified by research): §2.1 assess/bound risks, §2.2 human accountability (incl. override-rate tracking per v1.5), §2.3 technical controls, §2.4 end-user responsibility.
+  - **NIST AI RMF 1.0**: GOVERN 1/2/4, MAP 3, MEASURE 2/3, MANAGE 2/4.
+  - **ISO/IEC 42001:2023**: A.2.2, A.3.2, A.5.3, A.6.2.4/6/8, A.7.5, A.8.2/4, A.9.2, A.10.4, Clauses 9–10 (Annex A control names verified against Table A.1).
+- Every control cites real audit events (seq + sha256 prefix) and is marked EVIDENCED or IMPLEMENTED_NO_EVENTS; includes chain-integrity statement, executive metrics, agent trust register, full ledger appendix, and a self-assessment/limitations section.
+- `GET /api/compliance/export` (md download, `?format=json`), one-click **Compliance export** button in the Page's Engine Room audit panel. Live: https://lrmla9kv.qwenwork.page/ (V5).
+- 7 new tests (172 total).
+
+## Bug found BY the export: jsonb key-order broke the audit chain — FIXED
+- PostgreSQL jsonb reorders object keys; hashes used insertion-order JSON → chain reported BROKEN after DB reload.
+- Fix: canonical JSON hashing (recursively sorted keys) + one-time chain migration on hydrate (`chainVersion: 2`), payloads never altered. Verified: live chain INTACT after migration; key-reorder round-trip tests added.
+
+---
+
 # Post-workshop update (18 Nov, session 2)
 
 ## AvePoint starter kit — INTEGRATED, measured
