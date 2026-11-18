@@ -123,6 +123,21 @@ No-key smoke: board → SCRIPTED with full transcript; guard → deterministic v
 
 ---
 
+# Post-workshop update (18 Nov, session 4)
+
+## Scoring integrity + full live run — DONE
+- Scoring hardened: CLEAN outcomes require a real, same-agent, ALLOWED-or-approved decisionId;
+  one reward per decision; server-set risk weights; no check-time credit (double-count fixed);
+  penalties never blocked; ~20% deterministic sampled audits at L3+. docs/SCORING.md. 183 tests.
+- Full run against live V7: 23/23 steps via MCP + REST — all four AvePoint moments, the complete
+  governed loop, integrity rejections, board, briefing, chain verify, one live L3 audit sample.
+- Full run caught + fixed: guardActionSchema stripped sources/reads (evidence pack never reached
+  the claim checker via API/MCP) — regression test added.
+- Alignment report + evidence: output/OCTOOPS_FULL_RUN_ALIGNMENT.md, OCTOOPS_FULL_RUN_EVIDENCE.json.
+- Reproduce the demo story anytime: reset + run the full-run script (kept in session /tmp).
+
+---
+
 # Post-workshop update (18 Nov, session 3)
 
 ## P1 Compliance export — DONE, live
