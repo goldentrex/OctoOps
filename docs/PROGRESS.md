@@ -123,6 +123,22 @@ No-key smoke: board → SCRIPTED with full transcript; guard → deterministic v
 
 ---
 
+# Post-workshop update (18 Nov, session 8)
+
+## Hashmeta website — BUILT & LIVE via the Hashmeta MCP (the 15%)
+- Connected to the Hashmeta AI MCP (https://app.hashmeta.ai/api/mcp) via OAuth PKCE + dynamic
+  client registration (me driving it as the QwenWork agent — genuine platform usage for the 20%).
+- Built the full site programmatically: create_site → plan_site_pages → generate_site (26 AI steps:
+  design, header/footer, 5 pages, legal, 5 GEO blog posts) → deploy_site.
+- **Live: https://octoops.geo.hashmeta.tech** — Home, How it works, Meet our AI workforce, Pricing,
+  Trust & compliance + Terms/Privacy; Book-a-demo lead form; 5 GEO posts.
+- Workforce page embeds the LIVE trust directory via a custom CORS-enabled widget
+  (https://lrmla9kv.qwenwork.page/widget.js) — native render, no iframe (the QwenWork gateway CSP
+  blocks cross-domain iframes). Widget shows live agent cards + KPIs from the governance API.
+- Set publish mode auto; published. The 15% Hashmeta criterion is now earned.
+
+---
+
 # Post-workshop update (18 Nov, session 7)
 
 ## U3 changepoint detection — IMPLEMENTED, measured, live
