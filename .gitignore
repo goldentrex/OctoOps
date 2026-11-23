@@ -46,3 +46,9 @@ next-env.d.ts
 
 # skill packaging artifact
 qwenwork-skills/octoguard.zip
+
+# demo video production assets (rendered output, frames, voiceover — not committed)
+/video/
+/demo-video/
+*.mp4.tmp
+*.webm.tmp

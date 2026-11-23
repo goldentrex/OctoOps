@@ -1,6 +1,6 @@
 # Scoring Calibration Report — simulated careers through the real engine
 
-Generated: 2026-11-18T07:51:30.054Z
+Generated: 2026-11-23T03:06:17.349Z
 Design: 4 cohorts × 12 agents × 240 actions (80 days) + 60 forward actions; guard catch 90%;
 post-hoc discovery 90% at supervised levels / 30% autonomous; 10% CISO veto; seeded RNG.
 

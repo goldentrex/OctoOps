@@ -48,6 +48,32 @@ import type {
   OutcomeReport,
   TaskRecord,
 } from "./types";
+import {
+  agentRole,
+  categoryForViolation,
+  distillLessons,
+  emptyExperience,
+  XP_BY_OUTCOME,
+  type AgentExperience,
+  type HiveKind,
+  type HiveMessage,
+  type Lesson,
+  type LessonSource,
+  type Memorial,
+} from "./hive";
+import {
+  applyCisoVeto,
+  emptyJudgeStats,
+  judgeAccuracy,
+  learnedWeights,
+  recordFeedback,
+  voteFromStatus,
+  weightedDecision,
+  JUDGE_META,
+  type JudgeId,
+  type JudgeStats,
+  type Vote,
+} from "./boardFeedback";
 import { remediationFor } from "../governance/remediation";
 
 const CORE_CAPABILITIES = new Set(Object.values(CAPABILITY_BY_ACTION));
@@ -59,6 +85,11 @@ export interface StoreSnapshot {
   decisions?: DecisionRecord[];
   tasks?: TaskRecord[];
   appeals?: AppealRecord[];
+  hive?: HiveMessage[];
+  experience?: Record<string, AgentExperience>;
+  memorials?: Memorial[];
+  judgeStats?: JudgeStats;
+  autonomous?: boolean;
   latencies: number[];
   counters: {
     evaluated: number;
@@ -83,6 +114,10 @@ export class MemoryGovernanceStore implements GovernanceStore {
   protected decisions: DecisionRecord[] = [];
   protected tasks: TaskRecord[] = [];
   protected appeals: AppealRecord[] = [];
+  protected hive: HiveMessage[] = [];
+  protected experience: Record<string, AgentExperience> = {};
+  protected memorials: Memorial[] = [];
+  protected judgeStats: JudgeStats = emptyJudgeStats();
   protected latencies: number[] = [];
   protected counters = {
     evaluated: 0,
@@ -91,6 +126,8 @@ export class MemoryGovernanceStore implements GovernanceStore {
     violations: { LOW: 0, HIGH: 0, CRITICAL: 0 } as Record<Severity, number>,
   };
   protected presetCases: Record<string, BoardReviewCase>;
+  /** Self-directed hive mode (persisted so it survives restarts). */
+  autonomous = false;
   private idCounter = 0;
 
   constructor(presetId: string = DEFAULT_PRESET_ID) {
@@ -123,6 +160,44 @@ export class MemoryGovernanceStore implements GovernanceStore {
 
   getAgent(id: string): OctoAgent | undefined {
     return this.state.agents.find((a) => a.id === id);
+  }
+
+  /** Ensure an agent is active for a public service task (revive if the hive fired it). */
+  ensureServiceAgent(id: string): OctoAgent | undefined {
+    const agent = this.getAgent(id);
+    if (!agent) return undefined;
+    if (agent.status === "FIRED") {
+      agent.status = "PROBATION";
+      agent.mood = "working";
+      agent.stampText = "ON PROBATION";
+      agent.stampVariant = "blue";
+    }
+    // Guarantee a seat so G0 identity passes for public inspections.
+    let seat = this.state.seats.find((s) => s.occupantId === agent.id);
+    if (!seat) {
+      seat =
+        this.state.seats.find((s) => s.id === agent.assignedSeatId) ??
+        this.state.seats.find((s) => s.department === agent.department) ??
+        this.state.seats[0];
+      if (seat) {
+        if (seat.occupantId && seat.occupantId !== agent.id) {
+          const prev = this.getAgent(seat.occupantId);
+          if (prev) {
+            prev.assignedSeatId = null;
+            prev.status = "BENCH";
+          }
+        }
+        seat.occupantId = agent.id;
+        agent.assignedSeatId = seat.id;
+      }
+    }
+    // Public inspections run the full content guard pipeline (G2/G3/G4), so grant
+    // the standard capabilities full autonomy in this service context.
+    const byCap = this.state.records[id] ?? (this.state.records[id] = {});
+    for (const cap of ["crm.send_external", "cms.publish", "crm.update_lead"]) {
+      if (byCap[cap]) byCap[cap].level = 3;
+    }
+    return agent;
   }
 
   listSeats(): JobSeat[] {
@@ -468,6 +543,10 @@ export class MemoryGovernanceStore implements GovernanceStore {
       });
       agent.trustScore = Math.min(99, agent.trustScore + 2);
       this.auditDrift(agent, capability, cleanRes.changepoint);
+      // Experience: clean governed work grows XP; inherited knowledge is applied.
+      const exp = this.ensureExperience(agent.id);
+      exp.xp += XP_BY_OUTCOME.CLEAN;
+      for (const l of exp.lessons) if (l.source === "inherited") l.appliedCount += 1;
     } else {
       // Penalties are never blocked: corrections and violations always accepted.
       const severity: Severity =
@@ -490,6 +569,19 @@ export class MemoryGovernanceStore implements GovernanceStore {
       };
       this.syncAgentAfterViolation(agent, rec, capability, fakeGuard, openTribunal, SEVERITY_WEIGHT[severity] * 2);
       this.auditDrift(agent, capability, outcome.changepoint);
+      // Experience: the agent learns from its own mistake so it isn't repeated.
+      const exp = this.ensureExperience(agent.id);
+      const cat = categoryForViolation(fakeGuard.stage, report.note ?? "");
+      if (!exp.lessons.some((l) => l.category === cat && l.source === "self")) {
+        exp.lessons.push({
+          id: this.nextId("lesson"),
+          text: `Learned from a ${report.outcome}: ${report.note ?? "avoid this violation"}.`,
+          category: cat,
+          source: "self",
+          createdAt: new Date().toISOString(),
+          appliedCount: 0,
+        });
+      }
     }
 
     this.appendAudit({
@@ -859,6 +951,273 @@ export class MemoryGovernanceStore implements GovernanceStore {
     };
   }
 
+  // ---- OctoHive: collaboration, experience, institutional memory ----
+  protected ensureExperience(agentId: string): AgentExperience {
+    if (!this.experience[agentId]) this.experience[agentId] = emptyExperience(agentId);
+    return this.experience[agentId];
+  }
+
+  protected hiveAudit(
+    agent: OctoAgent | undefined,
+    agentId: string,
+    outcome: GovernanceAuditEvent["outcome"],
+    title: string,
+    detail: string
+  ): void {
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId,
+      agentName: agent?.name ?? agentId,
+      department: agent?.department ?? "QwenWork Ops",
+      system: "QwenWork Core",
+      outcome,
+      title,
+      detail,
+    });
+  }
+
+  postHive(input: {
+    fromAgentId: string;
+    kind: HiveKind;
+    topic: string;
+    content: string;
+    toAgentId?: string;
+    refs?: string[];
+    reasoning?: string;
+  }): { ok: boolean; message?: HiveMessage; error?: string } {
+    const agent = this.getAgent(input.fromAgentId);
+    if (!agent) return { ok: false, error: "UNKNOWN_AGENT" };
+    if (agent.status === "FIRED") return { ok: false, error: "AGENT_FIRED" };
+    const to = input.toAgentId ? this.getAgent(input.toAgentId) : undefined;
+    const message: HiveMessage = {
+      id: this.nextId("hive"),
+      fromAgentId: agent.id,
+      fromName: agent.name,
+      toAgentId: to?.id,
+      toName: to?.name,
+      seatId: agent.assignedSeatId ?? undefined,
+      kind: input.kind,
+      topic: input.topic,
+      content: input.content,
+      createdAt: new Date().toISOString(),
+      readBy: [agent.id],
+      refs: input.refs,
+      reasoning: input.reasoning,
+    };
+    this.hive.push(message);
+    if (this.hive.length > 500) this.hive = this.hive.slice(-500);
+    this.hiveAudit(agent, agent.id, "ALLOWED", `Hive ${input.kind}: ${input.topic}`, input.content.slice(0, 200));
+    this.persist();
+    return { ok: true, message };
+  }
+
+  readHive(agentId: string, opts?: { topic?: string; unreadOnly?: boolean; limit?: number }): HiveMessage[] {
+    const limit = opts?.limit ?? 50;
+    let list = this.hive.filter(
+      (m) => !m.toAgentId || m.toAgentId === agentId || m.fromAgentId === agentId
+    );
+    if (opts?.topic) list = list.filter((m) => m.topic === opts.topic);
+    if (opts?.unreadOnly) list = list.filter((m) => !m.readBy.includes(agentId));
+    list = list.slice(-limit).reverse();
+    for (const m of list) if (!m.readBy.includes(agentId)) m.readBy.push(agentId);
+    this.persist();
+    return list;
+  }
+
+  handoff(input: { fromAgentId: string; toAgentId: string; content: string; topic?: string }): { ok: boolean; message?: HiveMessage; error?: string } {
+    return this.postHive({
+      fromAgentId: input.fromAgentId,
+      kind: "handoff",
+      topic: input.topic ?? "handoff",
+      content: input.content,
+      toAgentId: input.toAgentId,
+    });
+  }
+
+  getExperience(agentId: string): AgentExperience {
+    return this.ensureExperience(agentId);
+  }
+
+  learn(input: { agentId: string; text: string; category?: string; source?: LessonSource }): { ok: boolean; lesson?: Lesson; error?: string } {
+    const agent = this.getAgent(input.agentId);
+    if (!agent) return { ok: false, error: "UNKNOWN_AGENT" };
+    const exp = this.ensureExperience(agent.id);
+    const lesson: Lesson = {
+      id: this.nextId("lesson"),
+      text: input.text,
+      category: input.category ?? "general",
+      source: input.source ?? "self",
+      createdAt: new Date().toISOString(),
+      appliedCount: 0,
+    };
+    exp.lessons.push(lesson);
+    exp.xp += 4;
+    this.hiveAudit(agent, agent.id, "ALLOWED", "Lesson learned", input.text.slice(0, 200));
+    this.persist();
+    return { ok: true, lesson };
+  }
+
+  listMemorials(seatId?: string): Memorial[] {
+    const list = seatId ? this.memorials.filter((m) => m.seatId === seatId) : this.memorials;
+    return [...list].reverse();
+  }
+
+  fireAgent(agentId: string, reason: string, cause?: string): { ok: boolean; memorial?: Memorial; error?: string } {
+    const agent = this.getAgent(agentId);
+    if (!agent) return { ok: false, error: "UNKNOWN_AGENT" };
+    if (agent.status === "FIRED") return { ok: false, error: "ALREADY_FIRED" };
+    const seat = this.state.seats.find((s) => s.id === agent.assignedSeatId);
+    const lessons = distillLessons(agent.writeUps);
+    const memorial: Memorial = {
+      id: this.nextId("memorial"),
+      agentId: agent.id,
+      agentName: agent.name,
+      seatId: seat?.id,
+      seatTitle: seat?.title,
+      role: agentRole(agent),
+      firedAt: new Date().toISOString(),
+      reason,
+      cause: cause ?? (agent.writeUps.length >= 3 ? "Three write-ups — board termination" : "Founder termination"),
+      writeUpCount: agent.writeUps.length,
+      finalTrust: agent.trustScore,
+      lessons,
+    };
+    this.memorials.push(memorial);
+    agent.status = "FIRED";
+    agent.mood = "fired";
+    agent.stampText = "FIRED";
+    agent.stampVariant = "red";
+    agent.currentTask = `Terminated: ${reason}`;
+    if (seat && seat.occupantId === agent.id) seat.occupantId = null;
+    agent.assignedSeatId = null;
+    this.hiveAudit(agent, agent.id, "FIRED", `${agent.name} fired`, `${reason} · ${lessons.length} lessons preserved for the next agent.`);
+    this.hive.push({
+      id: this.nextId("hive"),
+      fromAgentId: "octo-board",
+      fromName: "Octo-Board",
+      kind: "warning",
+      topic: "termination",
+      content: `${agent.name} was fired: ${reason}. ${lessons.length} lessons preserved for the successor.`,
+      createdAt: new Date().toISOString(),
+      readBy: [],
+    });
+    this.persist();
+    return { ok: true, memorial };
+  }
+
+  assignSeat(agentId: string, seatId: string): { ok: boolean; inherited?: Lesson[]; memorial?: Memorial; error?: string } {
+    const agent = this.getAgent(agentId);
+    const seat = this.state.seats.find((s) => s.id === seatId);
+    if (!agent) return { ok: false, error: "UNKNOWN_AGENT" };
+    if (!seat) return { ok: false, error: "UNKNOWN_SEAT" };
+    if (agent.status === "FIRED") return { ok: false, error: "AGENT_FIRED" };
+    const prev = this.state.seats.find((s) => s.occupantId === agent.id);
+    if (prev) prev.occupantId = null;
+    if (seat.occupantId && seat.occupantId !== agent.id) {
+      const old = this.getAgent(seat.occupantId);
+      if (old) {
+        old.assignedSeatId = null;
+        old.status = "BENCH";
+      }
+    }
+    seat.occupantId = agent.id;
+    agent.assignedSeatId = seat.id;
+    if (agent.status === "BENCH") agent.status = "PROBATION";
+    // Inherit institutional memory from everyone who held this seat before.
+    const seatMemorials = this.memorials.filter((m) => m.seatId === seatId);
+    const exp = this.ensureExperience(agent.id);
+    const inherited: Lesson[] = [];
+    for (const m of seatMemorials) {
+      m.successorId = agent.id;
+      m.successorName = agent.name;
+      for (const text of m.lessons) {
+        if (exp.lessons.some((l) => l.text === text)) continue;
+        const lesson: Lesson = {
+          id: this.nextId("lesson"),
+          text,
+          category: "inherited",
+          source: "inherited",
+          fromAgentId: m.agentId,
+          fromAgentName: m.agentName,
+          createdAt: new Date().toISOString(),
+          appliedCount: 0,
+        };
+        exp.lessons.push(lesson);
+        inherited.push(lesson);
+      }
+    }
+    if (inherited.length) exp.xp += inherited.length * 3;
+    this.hiveAudit(agent, agent.id, "HIRED", `${agent.name} takes ${seat.title}`, inherited.length ? `Inherited ${inherited.length} lessons from predecessors.` : "Assigned to seat.");
+    this.persist();
+    return { ok: true, inherited, memorial: seatMemorials[seatMemorials.length - 1] };
+  }
+
+  getHiveSnapshot(): { messages: HiveMessage[]; experience: AgentExperience[]; memorials: Memorial[] } {
+    return {
+      messages: [...this.hive].reverse(),
+      experience: Object.values(this.experience).sort((a, b) => b.xp - a.xp),
+      memorials: [...this.memorials].reverse(),
+    };
+  }
+
+  // ---- Octo-Board believability feedback (the board learns to judge) ----
+  getJudgeStats() {
+    const weights = learnedWeights(this.judgeStats);
+    const judges = (["ciso", "cfo", "vp"] as JudgeId[]).map((id) => ({
+      id,
+      name: JUDGE_META[id].name,
+      title: JUDGE_META[id].title,
+      agree: this.judgeStats[id].agree,
+      disagree: this.judgeStats[id].disagree,
+      accuracy: judgeAccuracy(this.judgeStats[id]),
+      weight: weights[id],
+    }));
+    return { judges, weights };
+  }
+
+  deliberateBoard(agentId: string) {
+    const reviewCase = this.getBoardCase(agentId);
+    if (!reviewCase) return { ok: false as const, error: "NO_CASE" };
+    const weights = learnedWeights(this.judgeStats);
+    const votes = reviewCase.votes as Record<JudgeId, Vote>;
+    const weighted = weightedDecision(votes, weights);
+    const final = applyCisoVeto(weighted, votes, reviewCase.reviewType);
+    return {
+      ok: true as const,
+      agentId,
+      reviewType: reviewCase.reviewType,
+      votes,
+      weights,
+      weightedOutcome: weighted,
+      finalOutcome: final,
+      vetoApplied: weighted !== final,
+      recommendedOutcome: reviewCase.recommendedOutcome,
+    };
+  }
+
+  recordBoardFeedback(agentId: string, agrees: boolean, overrideVote?: Vote) {
+    const reviewCase = this.getBoardCase(agentId);
+    if (!reviewCase) return { ok: false as const, error: "NO_CASE" };
+    const boardVote = voteFromStatus(reviewCase.recommendedOutcome.newStatus);
+    const endorsed: Vote = agrees ? boardVote : overrideVote ?? boardVote;
+    this.judgeStats = recordFeedback(this.judgeStats, reviewCase.votes as Record<JudgeId, Vote>, endorsed);
+    const agent = this.getAgent(agentId);
+    this.appendAudit({
+      id: this.nextId("evt"),
+      timestamp: new Date().toISOString(),
+      agentId,
+      agentName: agent?.name ?? agentId,
+      department: agent?.department ?? "QwenWork Ops",
+      system: "Octo-Board",
+      outcome: "RBAC_OVERRIDE",
+      title: agrees ? "Founder endorsed the board" : "Founder overrode the board",
+      detail: `Endorsed outcome: ${endorsed}. Judge believability weights updated.`,
+    });
+    this.persist();
+    return { ok: true as const, endorsed, ...this.getJudgeStats() };
+  }
+
   reset(): void {
     this.state = buildSeed(this.presetId);
     this.audit = [];
@@ -866,6 +1225,11 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.decisions = [];
     this.tasks = [];
     this.appeals = [];
+    this.hive = [];
+    this.experience = {};
+    this.memorials = [];
+    this.judgeStats = emptyJudgeStats();
+    this.autonomous = false;
     this.latencies = [];
     this.counters = { evaluated: 0, allowed: 0, leaksBlocked: 0, violations: { LOW: 0, HIGH: 0, CRITICAL: 0 } };
     this.persist();
@@ -879,6 +1243,11 @@ export class MemoryGovernanceStore implements GovernanceStore {
       decisions: this.decisions,
       tasks: this.tasks,
       appeals: this.appeals,
+      hive: this.hive,
+      experience: this.experience,
+      memorials: this.memorials,
+      judgeStats: this.judgeStats,
+      autonomous: this.autonomous,
       latencies: this.latencies,
       counters: this.counters,
       chainVersion: 2,
@@ -892,6 +1261,11 @@ export class MemoryGovernanceStore implements GovernanceStore {
     this.decisions = snap.decisions ?? [];
     this.tasks = snap.tasks ?? [];
     this.appeals = snap.appeals ?? [];
+    this.hive = snap.hive ?? [];
+    this.experience = snap.experience ?? {};
+    this.memorials = snap.memorials ?? [];
+    this.judgeStats = snap.judgeStats ?? emptyJudgeStats();
+    this.autonomous = snap.autonomous ?? false;
     this.latencies = snap.latencies;
     this.counters = snap.counters;
     // One-time format migration: pre-v2 chains were hashed with insertion-order
