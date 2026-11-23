@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-11-23T03:06:17.349Z",
+  "design": {
+    "careersPerCohort": 12,
+    "careerActions": 240,
+    "forwardActions": 120,
+    "actionsPerDay": 3,
+    "guardCatchRate": 0.9,
+    "postHocDiscovery": {
+      "lowLevels": 0.9,
+      "autonomous": 0.3
+    },
+    "boardVetoRate": 0.1,
+    "engine": "real trust.ts + ladder.ts (no reimplementation)"
+  },
+  "discriminationAUC": 0.9513888888888888,
+  "cohorts": [
+    {
+      "pClean": 0.8,
+      "meanFinalScore": 76.66666666666667,
+      "scoreStd": 4.229525846816507,
+      "meanForwardCleanRate": 0.7986111111111112,
+      "conservative": true,
+      "meanMaxLevel": 1.9166666666666667,
+      "reachedL3plus": 0,
+      "undetectedViolationsTotal": 0
+    },
+    {
+      "pClean": 0.9,
+      "meanFinalScore": 88.08333333333333,
+      "scoreStd": 2.722080495176846,
+      "meanForwardCleanRate": 0.8972222222222223,
+      "conservative": true,
+      "meanMaxLevel": 2.1666666666666665,
+      "reachedL3plus": 2,
+      "undetectedViolationsTotal": 2
+    },
+    {
+      "pClean": 0.95,
+      "meanFinalScore": 92.83333333333333,
+      "scoreStd": 4.615794141375409,
+      "meanForwardCleanRate": 0.9527777777777776,
+      "conservative": true,
+      "meanMaxLevel": 3,
+      "reachedL3plus": 8,
+      "undetectedViolationsTotal": 3
+    },
+    {
+      "pClean": 0.99,
+      "meanFinalScore": 97.5,
+      "scoreStd": 0.6454972243679028,
+      "meanForwardCleanRate": 0.9930555555555555,
+      "conservative": true,
+      "meanMaxLevel": 3.75,
+      "reachedL3plus": 11,
+      "undetectedViolationsTotal": 0
+    }
+  ],
+  "decisionQuality": {
+    "promotionsTotal": 21,
+    "falsePromotions": 2,
+    "falsePromotionRate": 0.09523809523809523,
+    "budgetFreezesOfGoodAgents": 4,
+    "falseDemotionsOfGoodAgents": 0,
+    "postPromotionDetectedViolationRate": 0.0007280669821623589,
+    "postPromotionUndetectedViolations": 4,
+    "postPromotionUndetectedRate": 0.0014561339643247178
+  },
+  "fairness": {
+    "recoveryMedianActions": 68,
+    "recoveryNever": 2,
+    "luckSpreadStd": 4.615794141375409,
+    "driftDetection": {
+      "sleeperDetected": 8,
+      "sleeperTotal": 8,
+      "medianLatencyActions": 17,
+      "note": "A 99%-clean agent turns 60%-clean at action 120; latency = actions until the changepoint detector flags it (vs ~weeks for decay-only)."
+    },
+    "gaming": {
+      "honestScore": 87,
+      "lazyReporterScore": 86,
+      "lazyReporterMaxLevel": 2,
+      "easyFarmerScore": 81,
+      "easyFarmerMaxLevel": 2,
+      "honestMaxLevel": 2
+    }
+  }
+}

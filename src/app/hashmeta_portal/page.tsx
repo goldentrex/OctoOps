@@ -26,17 +26,42 @@ function PublicHashmetaPortalContent() {
     BUSINESS_PRESETS.find((p) => p.id === presetId) ?? BUSINESS_PRESETS[0];
 
   useEffect(() => {
-    const persisted = loadPersistedOctoState();
-    if (persisted && persisted.activePresetId === presetId) {
-      setSeats(persisted.seats);
-      setCandidates(persisted.candidates);
-      setIsLiveSynced(true);
-    } else {
-      const snap = buildPresetSnapshot(presetId);
-      setSeats(snap.seats);
-      setCandidates(snap.candidates);
-      setIsLiveSynced(false);
-    }
+    let cancelled = false;
+
+    // M5: read from the server first (works across browsers / embedded sites),
+    // then fall back to same-browser localStorage, then to static presets.
+    const applyFallback = () => {
+      if (cancelled) return;
+      const persisted = loadPersistedOctoState();
+      if (persisted && persisted.activePresetId === presetId) {
+        setSeats(persisted.seats);
+        setCandidates(persisted.candidates);
+        setIsLiveSynced(true);
+      } else {
+        const snap = buildPresetSnapshot(presetId);
+        setSeats(snap.seats);
+        setCandidates(snap.candidates);
+        setIsLiveSynced(false);
+      }
+    };
+
+    fetch("/api/agents")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data && data.presetId === presetId && Array.isArray(data.agents)) {
+          setSeats(data.seats);
+          setCandidates(data.agents);
+          setIsLiveSynced(true);
+        } else {
+          applyFallback();
+        }
+      })
+      .catch(applyFallback);
+
+    return () => {
+      cancelled = true;
+    };
   }, [presetId]);
 
   const seatedAgents = seats

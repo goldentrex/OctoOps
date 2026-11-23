@@ -49,6 +49,8 @@ export interface WriteUpIncident {
   interceptedPayload: string;
   blockedBy: "OctoGuard DLP" | "Hallucination Shield" | "CRM RBAC Gatekeeper" | "Visibility Auditor";
   trustPenalty: number;
+  /** Actual Beta penalty applied (for exact reversal on successful appeal). */
+  betaDelta?: number;
 }
 
 export interface PermissionScope {

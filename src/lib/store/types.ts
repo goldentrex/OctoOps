@@ -1,0 +1,202 @@
+// ============================================================================
+// GovernanceStore contract (M2). Implemented in-memory (seeded from presets)
+// and as a JSON-file store for local dev. A hosted database can replace it
+// by implementing this interface.
+// ============================================================================
+
+import type { BoardReviewCase, GovernanceAuditEvent, JobSeat, OctoAgent } from "../../types/octo";
+import type { ChainedAuditEvent, ChainVerification } from "../governance/audit";
+import type { CapabilityRecord, ErrorBudget } from "../governance/ladder";
+import type {
+  GuardAction,
+  GuardResult,
+  GuardStage,
+  GuardVerdict,
+  JudgeFn,
+  Severity,
+  TenantRegistry,
+} from "../governance/types";
+import type {
+  AgentExperience,
+  HiveKind,
+  HiveMessage,
+  Lesson,
+  LessonSource,
+  Memorial,
+} from "./hive";
+
+export interface ApprovalItem {
+  id: string;
+  agentId: string;
+  agentName: string;
+  action: GuardAction;
+  createdAt: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EDITED";
+  verdict: GuardVerdict;
+  stage: GuardStage;
+  reasons: string[];
+  resolvedAt?: string;
+  editedPayloadText?: string;
+}
+
+export interface OutcomeReport {
+  agentId: string;
+  actionType: GuardAction["actionType"];
+  outcome: "CLEAN" | "CORRECTED" | "VIOLATION";
+  severity?: Severity;
+  note?: string;
+  riskWeight?: number;
+  /**
+   * Required for CLEAN: the decisionId returned by octoguard_check_action.
+   * Ties the reward to a real checked action (anti-farming) and lets the
+   * server set the risk weight instead of trusting the caller.
+   */
+  decisionId?: string;
+}
+
+export interface MetricsSnapshot {
+  actionsEvaluated: number;
+  leaksBlocked: number;
+  autonomyRate: number; // fraction of evaluated actions allowed with no human
+  guardLatencyP50Ms: number;
+  guardLatencyP95Ms: number;
+  pendingApprovals: number;
+  violationsBySeverity: Record<Severity, number>;
+  founderHoursSavedEstimate: number;
+}
+
+export interface EvaluateResponse {
+  guard: GuardResult;
+  approvalId?: string;
+  decisionId?: string;
+  agentTrustScore?: number;
+  capabilityLevel?: number;
+}
+
+/** A fully-explainable record of one guard decision (Engine Room feed). */
+export interface DecisionRecord {
+  id: string;
+  timestamp: string;
+  agentId: string;
+  agentName: string;
+  action: GuardAction;
+  guard: GuardResult;
+  trustBefore: number;
+  trustAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+  approvalId?: string;
+  /** An outcome has already been reported against this decision (anti-farming). */
+  outcomeReported?: boolean;
+  /** L3+ autonomous action selected for post-hoc sampled audit (~20%). */
+  sampled?: boolean;
+  /** Task session this decision belongs to (workflow v2). */
+  taskId?: string;
+}
+
+/**
+ * A task session (workflow v2): the agent declares intent + scope up front;
+ * reads and checks are linked to it; the server computes scope membership;
+ * ending the task surfaces any allowed-but-unreported work.
+ */
+export interface TaskRecord {
+  id: string;
+  agentId: string;
+  agentName: string;
+  title: string;
+  scope: string[];
+  startedAt: string;
+  endedAt?: string;
+  summary?: string;
+  decisionIds: string[];
+  reads: { resource: string; sensitivity?: string; inScope: boolean; at: string }[];
+}
+
+/** An agent's contest of a write-up (procedural fairness). */
+export interface AppealRecord {
+  id: string;
+  agentId: string;
+  agentName: string;
+  writeUpId: string;
+  capability: string;
+  reason: string;
+  status: "PENDING" | "UPHELD" | "OVERTURNED";
+  createdAt: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
+  betaReversed?: number;
+}
+
+export interface AgentFile {
+  agent: OctoAgent;
+  seat: JobSeat | null;
+  capabilities: (CapabilityRecord & { score: number })[];
+  errorBudget: ErrorBudget;
+}
+
+export interface GovernanceStore {
+  readonly presetId: string;
+  listAgents(): OctoAgent[];
+  getAgent(id: string): OctoAgent | undefined;
+  ensureServiceAgent(id: string): OctoAgent | undefined;
+  listSeats(): JobSeat[];
+  getAgentFile(id: string): AgentFile | undefined;
+  getTenantRegistry(): TenantRegistry;
+  evaluate(action: GuardAction, judge?: JudgeFn): Promise<EvaluateResponse>;
+  reportOutcome(report: OutcomeReport): {
+    ok: boolean;
+    trustScore?: number;
+    openTribunal?: boolean;
+    engineScore?: number;
+    error?: string;
+  };
+  listAudit(): ChainedAuditEvent[];
+  appendAudit(event: GovernanceAuditEvent): ChainedAuditEvent;
+  verifyAudit(): ChainVerification;
+  listApprovals(status?: ApprovalItem["status"]): ApprovalItem[];
+  resolveApproval(
+    id: string,
+    resolution: { action: "APPROVE" | "REJECT" | "EDIT"; payloadText?: string; severity?: Severity }
+  ): Promise<{ approval: ApprovalItem; guard?: GuardResult } | undefined>;
+  getBoardCase(agentId: string): BoardReviewCase | undefined;
+  getMetrics(): MetricsSnapshot;
+  getDecisions(limit?: number): DecisionRecord[];
+  startTask(input: { agentId: string; title: string; scope: string[] }): { ok: boolean; task?: TaskRecord; error?: string };
+  endTask(taskId: string, summary?: string): { ok: boolean; task?: TaskRecord; unreported?: string[]; error?: string };
+  getTasks(agentId?: string): TaskRecord[];
+  logAccess(input: {
+    agentId: string;
+    resource: string;
+    purpose?: string;
+    sensitivity?: "public" | "internal" | "client-confidential" | "regulated";
+    inScope?: boolean;
+    taskId?: string;
+  }): { logged: boolean; seq: number; inScope: boolean; warning: string | null };
+  preflight(action: GuardAction, judge?: JudgeFn): Promise<{ guard: GuardResult; remediation: string[] }>;
+  fileAppeal(input: { agentId: string; writeUpId: string; reason: string }): { ok: boolean; appeal?: AppealRecord; error?: string };
+  resolveAppeal(id: string, resolution: { decision: "UPHELD" | "OVERTURNED"; note?: string }): { ok: boolean; appeal?: AppealRecord; error?: string };
+  getAppeals(status?: AppealRecord["status"]): AppealRecord[];
+  // ---- OctoHive: collaboration, experience, institutional memory ----
+  postHive(input: {
+    fromAgentId: string;
+    kind: HiveKind;
+    topic: string;
+    content: string;
+    toAgentId?: string;
+    refs?: string[];
+    reasoning?: string;
+  }): { ok: boolean; message?: HiveMessage; error?: string };
+  readHive(agentId: string, opts?: { topic?: string; unreadOnly?: boolean; limit?: number }): HiveMessage[];
+  handoff(input: { fromAgentId: string; toAgentId: string; content: string; topic?: string }): { ok: boolean; message?: HiveMessage; error?: string };
+  getExperience(agentId: string): AgentExperience;
+  learn(input: { agentId: string; text: string; category?: string; source?: LessonSource }): { ok: boolean; lesson?: Lesson; error?: string };
+  listMemorials(seatId?: string): Memorial[];
+  fireAgent(agentId: string, reason: string, cause?: string): { ok: boolean; memorial?: Memorial; error?: string };
+  assignSeat(agentId: string, seatId: string): { ok: boolean; inherited?: Lesson[]; memorial?: Memorial; error?: string };
+  getHiveSnapshot(): { messages: HiveMessage[]; experience: AgentExperience[]; memorials: Memorial[] };
+  getJudgeStats(): { judges: { id: string; name: string; title: string; agree: number; disagree: number; accuracy: number; weight: number }[]; weights: Record<string, number> };
+  deliberateBoard(agentId: string): { ok: boolean; error?: string; agentId?: string; reviewType?: string; votes?: Record<string, string>; weights?: Record<string, number>; weightedOutcome?: string; finalOutcome?: string; vetoApplied?: boolean; recommendedOutcome?: unknown };
+  recordBoardFeedback(agentId: string, agrees: boolean, overrideVote?: "PROMOTE" | "PROBATION" | "WRITE_UP" | "FIRE"): { ok: boolean; error?: string; endorsed?: string };
+  autonomous: boolean;
+  reset(): void;
+}

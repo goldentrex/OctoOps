@@ -31,10 +31,10 @@ interface HashmetaTrustPortalProps {
 }
 
 const DEFAULT_CLIENT_OPTIONS = [
-  "Hikari Automation Systems (Enterprise Account)",
-  "Sebrina Fund Management (LP Portfolio Portal)",
-  "BIMC Advisory Group (SME Transformation)",
-  "AvePoint Singapore (AI Trust Audit Partner)",
+  "Meridian Robotics (Enterprise Account)",
+  "Northlight Capital (LP Portfolio Portal)",
+  "Atlas SME Advisory (SME Transformation)",
+  "Keystone Cloud Audit (AI Trust Audit Partner)",
 ];
 
 export const HashmetaTrustPortal: React.FC<HashmetaTrustPortalProps> = ({

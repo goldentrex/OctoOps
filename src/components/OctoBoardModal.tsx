@@ -48,8 +48,38 @@ export const OctoBoardModal: React.FC<OctoBoardModalProps> = ({
     BoardReviewCase["recommendedOutcome"] | null
   >(null);
   const [customFired, setCustomFired] = useState<boolean>(false);
+  const [liveBoard, setLiveBoard] = useState<{
+    mode: "LIVE" | "SCRIPTED";
+    reviewCase: BoardReviewCase;
+  } | null>(null);
 
-  const reviewCase = agent ? getBoardReviewCase(agent, seat, presetCases) : null;
+  // M5: ask the server board (live Qwen when keyed, scripted otherwise).
+  // Any failure keeps the local scripted case — the demo never dies.
+  const boardAgentId = agent?.id;
+  useEffect(() => {
+    setLiveBoard(null);
+    if (!boardAgentId) return;
+    let cancelled = false;
+    fetch("/api/board/deliberate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId: boardAgentId }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.reviewCase) {
+          setLiveBoard({ mode: data.mode, reviewCase: data.reviewCase });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [boardAgentId]);
+
+  const reviewCase =
+    liveBoard?.reviewCase ??
+    (agent ? getBoardReviewCase(agent, seat, presetCases) : null);
   const reviewCaseId = reviewCase?.id;
 
   useEffect(() => {
@@ -202,6 +232,17 @@ export const OctoBoardModal: React.FC<OctoBoardModalProps> = ({
                     <span className="text-xs font-medium text-slate-400">
                       3-Judge Executive Tribunal
                     </span>
+                    {liveBoard && (
+                      <span
+                        className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          liveBoard.mode === "LIVE"
+                            ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40"
+                            : "bg-slate-500/20 text-slate-300 ring-1 ring-slate-400/30"
+                        }`}
+                      >
+                        {liveBoard.mode === "LIVE" ? "LIVE · Qwen" : "SCRIPTED"}
+                      </span>
+                    )}
                   </div>
                   <h2 className="text-base sm:text-lg font-bold tracking-tight mt-0.5 truncate">
                     {reviewCase.headline}
