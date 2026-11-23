@@ -16,6 +16,14 @@ import type {
   Severity,
   TenantRegistry,
 } from "../governance/types";
+import type {
+  AgentExperience,
+  HiveKind,
+  HiveMessage,
+  Lesson,
+  LessonSource,
+  Memorial,
+} from "./hive";
 
 export interface ApprovalItem {
   id: string;
@@ -130,6 +138,7 @@ export interface GovernanceStore {
   readonly presetId: string;
   listAgents(): OctoAgent[];
   getAgent(id: string): OctoAgent | undefined;
+  ensureServiceAgent(id: string): OctoAgent | undefined;
   listSeats(): JobSeat[];
   getAgentFile(id: string): AgentFile | undefined;
   getTenantRegistry(): TenantRegistry;
@@ -167,5 +176,27 @@ export interface GovernanceStore {
   fileAppeal(input: { agentId: string; writeUpId: string; reason: string }): { ok: boolean; appeal?: AppealRecord; error?: string };
   resolveAppeal(id: string, resolution: { decision: "UPHELD" | "OVERTURNED"; note?: string }): { ok: boolean; appeal?: AppealRecord; error?: string };
   getAppeals(status?: AppealRecord["status"]): AppealRecord[];
+  // ---- OctoHive: collaboration, experience, institutional memory ----
+  postHive(input: {
+    fromAgentId: string;
+    kind: HiveKind;
+    topic: string;
+    content: string;
+    toAgentId?: string;
+    refs?: string[];
+    reasoning?: string;
+  }): { ok: boolean; message?: HiveMessage; error?: string };
+  readHive(agentId: string, opts?: { topic?: string; unreadOnly?: boolean; limit?: number }): HiveMessage[];
+  handoff(input: { fromAgentId: string; toAgentId: string; content: string; topic?: string }): { ok: boolean; message?: HiveMessage; error?: string };
+  getExperience(agentId: string): AgentExperience;
+  learn(input: { agentId: string; text: string; category?: string; source?: LessonSource }): { ok: boolean; lesson?: Lesson; error?: string };
+  listMemorials(seatId?: string): Memorial[];
+  fireAgent(agentId: string, reason: string, cause?: string): { ok: boolean; memorial?: Memorial; error?: string };
+  assignSeat(agentId: string, seatId: string): { ok: boolean; inherited?: Lesson[]; memorial?: Memorial; error?: string };
+  getHiveSnapshot(): { messages: HiveMessage[]; experience: AgentExperience[]; memorials: Memorial[] };
+  getJudgeStats(): { judges: { id: string; name: string; title: string; agree: number; disagree: number; accuracy: number; weight: number }[]; weights: Record<string, number> };
+  deliberateBoard(agentId: string): { ok: boolean; error?: string; agentId?: string; reviewType?: string; votes?: Record<string, string>; weights?: Record<string, number>; weightedOutcome?: string; finalOutcome?: string; vetoApplied?: boolean; recommendedOutcome?: unknown };
+  recordBoardFeedback(agentId: string, agrees: boolean, overrideVote?: "PROMOTE" | "PROBATION" | "WRITE_UP" | "FIRE"): { ok: boolean; error?: string; endorsed?: string };
+  autonomous: boolean;
   reset(): void;
 }
